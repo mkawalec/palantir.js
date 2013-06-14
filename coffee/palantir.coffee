@@ -1,0 +1,663 @@
+##############################
+##                          ##
+## Ten kod dedykuję Ewci <3 ##
+##                          ##
+##############################
+
+__ = (str) -> 
+    return str
+
+init = (initiator, public_initiator, spec, inherited) ->
+    _helpers = helpers()
+
+    new_id = _helpers.random_string()
+    if (not initiator.prototype.call_ids?) and (not initiator.prototype.callers?)
+        initiator.prototype = {}
+
+    initiator.prototype.call_ids = initiator.prototype.call_ids ? []
+    initiator.prototype.call_ids.push new_id
+    initiator.prototype.call_that = public_initiator
+
+    if (not inherited.prototype.callers?) and (not inherited.prototype.call_ids?)
+        inherited.prototype = {}
+    inherited.prototype.callers = inherited.prototype.callers ? []
+    inherited.prototype.callers.push(new_id)
+    
+    if inherited.prototype.call_ids?
+        if (_.intersection initiator.prototype.callers, inherited.prototype.call_ids).length > 0
+            return inherited.prototype.call_that
+    return inherited spec
+
+singleton = (fn) ->
+    return () ->
+        that = arguments[1] ? {}
+
+        if singleton.prototype.cached? and \
+            singleton.prototype.cached[fn]?
+                return _.extend {}, singleton.prototype.cached[fn], that
+
+        if not singleton.prototype.cached?
+            singleton.prototype = {}
+            singleton.prototype.cached = {}
+        singleton.prototype.cached[fn] = (_.partial fn, arguments)()
+
+        return _.extend {}, singleton.prototype.cached[fn], that
+
+helpers = singleton((spec) ->
+    that = {}
+
+    chars = 'abcdefghijklmnoprstuwqxyzABCDEFGHIJKLMNOPRSTUWQXYZ0123456789'
+
+    _props = ['id', 'data-source', 'data-actions', 
+        'data-shown_property', 'data-binding']
+   
+    that.clone = (element) ->
+        tag_name = element.tagName.lower()
+
+        clone = $("<div/>", {
+            class: tag_name
+            'data-tag': tag_name
+        })
+
+        _.each _props, (prop) ->
+            $(clone).attr(prop, $(element).attr(prop))
+        $(element).replaceWith clone
+        return clone
+
+    that.classify = (action) ->
+        switch action
+            when 'info' then return 'info'
+            when 'edit' then return 'warning'
+            when 'delete' then return 'danger'
+
+    that.name = (action) ->
+        switch action
+            when 'delete' then return __ 'Delete'
+            when 'info' then return __ 'Info'
+            when 'edit' then return __ 'Edit'
+        return __ action
+
+    that.is_number = (data) ->
+        return not isNaN(parseFloat(data)) and isFinite(data)
+
+    that.random_string = (length=12) ->
+        ret = []
+        for i in [0...length]
+            ret.push chars[Math.floor(chars.length*Math.random())]
+        return ret.join ''
+
+    return that
+)
+
+notifier = (spec, that) ->
+    that = that ? {}
+
+    placeholder = $('#alerts')
+
+    that.notify = (req_data) ->
+        if not messages[req_data]?
+            if code_messages[req_data.status]?
+                show_message(code_messages, req_data.status)
+                return
+            return
+
+        show_message(messages, req_data)
+          
+    show_message = (messages, key) ->
+        alert = $('<div/>', {
+            class: "alert alert-#{ messages[key].type }"
+        })
+
+        close_button = $('<button/>', {
+            class: 'close'
+            'data-dismiss': 'alert'
+            text: 'x'
+        })
+        close_button.on 'click', (e) ->
+            alert.hide 'slide', 'fast', ->
+                for el in placeholder.find('.ui-effects-wrapper')
+                    placeholder[0].removeChild el
+
+        message_wrapper = $('<div/>', {
+            class: 'message_wrapper'
+            text: messages[key].message
+        })
+
+        alert.append close_button
+        alert.append message_wrapper
+        alert.hide()
+
+        placeholder.append alert
+        alert.show 'slide', 'fast'
+
+    code_messages = {
+        500: {
+            type: 'error'
+            message: 'Nastąpił błąd serwera. Sprawa jest badana...'
+        }
+    }
+
+    messages = {
+        1: {
+            type: 'success'
+            message: __ 'The action has succeeded'
+        }
+    }
+
+    return that
+
+template = (spec, that) ->
+    that = that ? {}
+    if spec[0]?
+        spec = spec[0]
+
+    trans_regex = /{%(.*?)%}/g
+    spec_regex = /{{(.*?)}}/g
+
+    _libs = {}
+    _.extend _libs, helpers(spec)
+
+    base_url = spec.base_url ? url_root
+    spec.base_url = base_url
+
+    translate = (_, text) ->
+        return __ $.trim text
+
+    get_spec = (_, text) ->
+        return spec[$.trim(text)]
+
+    add_element = (element, data) ->
+        $(element).parent().append(
+            "<button class='btn btn-success add'>"+\
+            "<i class='icon-plus'></i></button>")
+        add_btn = $(element).siblings '.add'
+
+        $(add_btn).on 'click', (e) ->
+            e.preventDefault()
+            modal = new Modal __ 'Add'
+            modal.add_form()
+
+            for field in _.keys data.data
+                switch data.data[field]
+                    when 'str'
+                        modal.add_field field
+                    when 'unicode'
+                        modal.add_field field
+                    when 'int'
+                        attrs = {'data-parser': 'Decimal'}
+                        modal.add_field field, attrs
+                    when 'Decimal'
+                        attrs = {'data-parser': 'Decimal'}
+                        modal.add_field field, attrs
+
+            btn = modal.add_button 'info', __ 'Add'
+            $(btn).on 'click', (e) ->
+                data = {}
+                for field in $(modal.get()).find('.form-horizontal').find('input')
+                    data[$(field).attr('data-binding')] = $.trim field.value
+
+                _libs.open {
+                    url: $(element).attr('data-source')
+                    type: 'POST'
+                    data: data
+                    success: (data) ->
+                        modal.hide()
+                        that.set_details element, false
+                }
+
+            modal.show()
+
+    that.parse = (body) ->
+        body = body.replace trans_regex, translate
+        body = body.replace spec_regex, get_spec
+
+        return body
+
+    that.bind = (where, actions_object, string_id) ->
+        for element in where.find('[data-click]')
+            $(element).on 'click', (e) ->
+                e.preventDefault()
+                _libs.goto $(@).attr('data-click'), @
+
+        for element in $(where).find('[data-source]')
+            ((element) ->
+                if $(element).attr('data-actions')?
+                    actions = JSON.parse $(element).attr('data-actions')
+                that.set_details element, null, actions
+            )(element)
+
+        for element in $(where).find('[data-wysiwyg]')
+            if $(element).attr('data-wysiwyg') == 'true'
+                editor = new nicEditor()
+                editor.panelInstance $(element).attr('id')
+
+    that.set_details = (element, caching=true, actions) ->
+        _libs.open {
+            url: $(element).attr('data-source')
+            caching: caching
+            success: (data) ->
+                # Remove all children
+                contents = $(element).html()
+                $(element).html('')
+                if contents == 'null'
+                    return $(element).html(__ 'No category')
+
+                data_tag = $(element).attr('data-tag')
+                if data_tag?
+                    if tag_renderers[data_tag]?
+                        tag_renderers[data_tag] element, data
+                    else tag_renderers.div element, data
+                else
+                    if not element.tagName?
+                        tag_renderers.div element, data, contents
+                    else
+                        tag_name = element.tagName.lower()
+                        if tag_renderers[tag_name]?
+                            tag_renderers[tag_name] element, data
+                        else tag_renderers.div element, data
+
+                if actions? and actions.add
+                    _libs.open {
+                        url: $(element).attr('data-source') + 'spec/'
+                        success: (data) ->
+                            add_element element, data 
+                    }
+        }
+
+    tag_renderers = {
+        select: (element, data) ->
+            for el in data.data
+                $(element).append($("<option/>", {
+                    value: el.string_id
+                    text: el[$(element).attr('data-shown_property')]
+                }))
+
+        div: (element, data, contents) ->
+            for el in data.data
+                if el.string_id == contents
+                    $(element).html el[$(element).attr('data-binding')]
+                    break
+
+        checklist: (element, data) ->
+            element = _helpers.clone(element)
+
+            $(element).on 'change', 'input', (e) ->
+                selected = []
+                for el in $(e.delegateTarget).\
+                    find("input[type='checkbox']:checked")
+                        selected.push(el.value)
+
+                $(e.delegateTarget).\
+                    attr('data-value', JSON.stringify(selected))
+
+            # For all elements
+            for el in data.data
+                id = _libs.random_string()
+
+                checkbox_group = $('<div/>', {
+                    class: 'checkbox-group'
+                })
+                blah = checkbox_group.append($("<input/>", {
+                    type: 'checkbox'
+                    value: el.string_id
+                    id: id
+                }))
+                checkbox_group.append($('<label/>', {
+                    for: id
+                    text: el[$(element).attr('data-shown_property')]
+                }))
+
+                element.append(checkbox_group)
+    }
+    _.extend tag_renderers, spec.tag_renderers
+
+    fill = (where, string_id) ->
+        _libs.open {
+            url: spec.url+string_id
+            success: (data) ->
+                for column, details of data.data
+                    col = $("[data-binding='#{ column }']")
+                    if col.attr('data-wysiwyg') != 'true'
+                        col.val(details)
+                    else
+                        editor = nicEditors.findEditor(col.attr('id'))
+                        editor.setContent(details)
+        }
+
+    that.open = (name, where, object, action='add', string_id) ->
+        _libs.open {
+            url: base_url + "templates/#{ name }"
+            success: (data) ->
+                data = that.parse data
+                where.html data
+
+                if action == 'edit'
+                    that.bind where, object, string_id
+                    fill where, string_id
+                else
+                    that.bind where, object
+
+            tout: 3600
+        }
+
+    that.extend_renderers = (extensions) ->
+        _.extend tag_renderes, spec.tag_renderers
+    
+    inheriter = _.partial init, template, that, spec
+    _.extend _libs, inheriter(palantir)
+    _helpers = inheriter(helpers)
+    _notifier = inheriter(notifier)
+
+    return that
+
+cache = singleton((spec) ->
+    that = {}
+    timeout = spec.timeout ? 60
+
+    # A cache object structure:
+    # obj = {
+    #   expires: int
+    #   payload: Object
+    # }
+    cache = {}
+    dirty = false
+
+    has_timeout = (data) ->
+        now = (new Date()).getTime()
+
+        if now > data.expires
+            return true
+        return false
+
+    that.get = (key) ->
+        if cache[key]
+            if has_timeout(cache[key])
+                that.delete(key)
+            else    
+                return cache[key].payload
+        return undefined
+
+    that.set = (key, value, new_timeout=timeout) ->
+        payload = {
+            expires: (new Date()).getTime()+1000*new_timeout
+            payload: value
+        }
+        cache[key] = payload
+        dirty = true
+
+        return key
+
+    that.delete = (key) ->
+        delete cache[key]
+        return undefined
+
+    that.genkey = (data) ->
+        return data.type+data.url+JSON.stringify(data.data)
+
+    # Periodiacally backup to the locaCache to provide
+    # data persistence between reloads
+    backup_job = setInterval((() ->
+        if dirty == true
+            localStorage['palantir_cache'] = JSON.stringify(cache)
+            dirty = false
+    ), 1000)
+
+    # Load from the localStorage and set up stuff
+    setTimeout((() ->
+        if not localStorage?
+            window.clearInterval backup_job
+            return
+
+        if localStorage['palantir_cache']?
+            cache = JSON.parse(localStorage['palantir_cache'])
+    ), 0)
+
+    return that
+)
+
+gettext = singleton((spec, that) ->
+    if spec[0]?
+        spec = spec[0]
+    that = that ? {}
+
+    lang = spec.lang ? ($('html').attr('lang') ? 'en')
+    default_lang = spec.default_lang ? 'en'
+
+    base_url = spec.base_url ? url_root
+
+    translations = {}
+
+    that.gettext = (text, new_lang=lang) ->
+        if translations[new_lang] == undefined
+            if new_lang != default_lang
+                getlang(new_lang)
+            else
+                return text
+
+        if translations[new_lang] == null
+            return text
+
+        if not translations[new_lang][text]?
+            return text
+        return translations[new_lang][text]
+
+    getlang = (to_get) ->
+        p.open {
+            url: base_url + "translations/#{ to_get }.json"
+            async: false
+            success: (data) ->
+                translations[to_get] = data
+            error: (data) ->
+                if data.status == 404
+                    translations[to_get] = null
+            palantir_timeout: 3600*48
+        }
+
+    inheriter = _.partial init, gettext, that, spec
+    p = inheriter palantir
+
+    return that
+)
+
+model = (spec, that) ->
+    that = that ? {}
+
+    autosubmit = spec.autosubmit ? false
+
+    last = null
+
+    that.get = (callback, params, error) ->
+        p.open {
+            url: spec.url
+            data: params
+            contentType: 'json'
+            success: (data) ->
+                last = data.data[data.data.length-1][spec.id]
+
+                ret = []
+                for obj in data.data
+                    ret.push makeobj obj
+
+                callback ret
+            error: error
+            palantir_timeout: 3600
+        }
+
+    that.more = (callback) ->
+        return
+
+    that.submit = (callback) ->
+        return
+
+    that.new = ->
+        return
+
+    that.init = (params) ->
+        spec.id = params.id
+        spec.url = params.url
+        return that
+
+    makeobj = (dict) ->
+        dirty = false
+
+        for prop, value of dict
+            ((prop) ->
+                set_value = value
+                Object.defineProperty(dict, prop, {
+                    set: (new_value) ->
+                        dirty = true
+                        set_value = new_value
+                    get: ->
+                        return set_value
+                })
+            )(prop)
+
+        Object.defineProperty(dict, '__dirty', {
+            get: -> dirty
+            set: (value) -> dirty = value
+        })
+
+        return dict
+
+    inheriter = _.partial init, model, that, spec
+    p = inheriter palantir
+
+    return that
+
+palantir = singleton((spec) ->
+    that = {}
+    if spec[0]?
+        spec = spec[0]
+
+    _that = {}
+    _.extend _that, helpers(spec)
+    _.extend _that, notifier(spec)
+
+    routes = []
+
+    if spec.debug
+        tout = 0
+    else
+        tout = spec.timeout ? 3600*24*2
+
+    base_url = spec.base_url ? url_root
+    spec.base_url = base_url
+
+    wait_time = spec.wait_time ? 100
+
+    cached_memoize = (fn, data, new_tout, caching=true) ->
+        key = _cache.genkey(data)
+        cached = _cache.get(key)
+
+        if cached? and caching and data.type == 'GET'
+            if typeof cached.data == 'string'
+                return data.success cached.data
+            return data.success cached
+
+        _cache.set(key, 'waiting', 15)
+        return fn data
+
+    save_cache = (fn, cache_key, new_timeout) ->
+                    (data) ->
+                        if not data.req_time?
+                            if typeof data == 'string'
+                                _cache.set(cache_key, { data: data }, new_timeout)
+                            else
+                                _cache.set(cache_key, data, new_timeout)
+
+                        fn data
+    
+    on_error = (fn_succ, fn_err, cache_key) ->
+                    (data) ->
+                        cached = _cache.get(cache_key)
+
+                        if cached?
+                            if cached != 'waiting'
+                                return fn_succ cached
+                            delete _cache.delete(cache_key)
+
+                        _that.notify data
+
+                        if fn_err?
+                            fn_err data
+
+    promise = (fn, args, key) ->
+        () ->
+            cached = _cache.get(key)
+
+            if not cached? or cached != 'waiting'
+                return fn.apply(null, args)
+            if cached == 'waiting'
+                setTimeout(promise(fn, args, key), wait_time)
+
+    that.open = (req_data) ->
+        if not req_data.type?
+            req_data.type = 'GET'
+
+        key = _cache.genkey req_data
+
+        req_data.error = on_error(req_data.success, req_data.error, key)
+        if req_data.type == 'GET' and req_data.palantir_cache != false
+            req_data.success = save_cache(req_data.success, key, 
+                req_data.palantir_timeout)
+
+        args = [$.ajax, req_data, req_data.tout, req_data.caching]
+        promise(cached_memoize, args, key)()
+
+    that.template = (name, where, object={}) ->
+        that.open {
+            url: base_url + "templates/#{ name }"
+            success: (data) ->
+                data = _template.parse data
+                where.html data
+
+                _template.bind where
+            palantir_timeout: tout
+        }
+
+    that.extend_renderers = (extensions) ->
+        _template.extend_renderers(extensions)
+    
+    that.route = (route, fn) ->
+        routes.push({route: route, fn: fn})
+
+        () ->
+            fn.apply(null, arguments)
+
+    that.goto = (route, target) ->
+        matching = _.where(routes, {route: route})
+        if matching.length > 0
+            matching[0].fn(target)
+
+    # Constructor
+    setTimeout((() ->
+        $(window).on 'hashchange', (e) ->
+            e.preventDefault()
+            e.stopPropagation()
+
+            res = _.where(routes, {route: window.location.hash.slice(1)})
+            if res.length > 0
+                res[0].fn()
+    ), 0)
+
+    inheriter = _.partial init, palantir, that, spec
+    _template = inheriter(template)
+    _cache = inheriter(cache)
+
+    that.notifier = inheriter notifier
+    that.helpers = inheriter helpers
+    that.gettext = inheriter gettext
+    that.model = inheriter model
+
+    return that
+)
+
+MissingParam = (message) ->
+    @name = 'MissingParam'
+    @message = message ? 'A parameter is missing'
+
+# Exports to global scope
+window.palantir = palantir
+window.singleton = singleton
+window.init = init
+#window.model = model
