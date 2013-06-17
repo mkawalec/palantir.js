@@ -440,6 +440,7 @@ gettext = singleton((spec, that) ->
     default_lang = spec.default_lang ? 'en'
 
     base_url = spec.base_url ? url_root
+    translations_url = spec.translations_url ? "#{ base_url }translations/"
 
     translations = {}
 
@@ -459,7 +460,7 @@ gettext = singleton((spec, that) ->
 
     getlang = (to_get) ->
         p.open {
-            url: base_url + "translations/#{ to_get }.json"
+            url: "#{ translations_url+to_get }.json"
             async: false
             success: (data) ->
                 translations[to_get] = data
