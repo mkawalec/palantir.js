@@ -5,6 +5,7 @@
 ##############################
 
 __ = (str) -> 
+    # TODO: remove ASAP
     return str
 
 init = (initiator, public_initiator, spec, inherited) ->
@@ -63,19 +64,6 @@ helpers = singleton((spec) ->
             $(clone).attr(prop, $(element).attr(prop))
         $(element).replaceWith clone
         return clone
-
-    that.classify = (action) ->
-        switch action
-            when 'info' then return 'info'
-            when 'edit' then return 'warning'
-            when 'delete' then return 'danger'
-
-    that.name = (action) ->
-        switch action
-            when 'delete' then return __ 'Delete'
-            when 'info' then return __ 'Info'
-            when 'edit' then return __ 'Edit'
-        return __ action
 
     that.is_number = (data) ->
         return not isNaN(parseFloat(data)) and isFinite(data)
@@ -541,6 +529,7 @@ model = (spec, that) ->
 
     makeobj = (dict, dirty=false) ->
         ret = {}
+        deleted = false
 
         for prop, value of dict
             if typeof value == 'object'
@@ -553,11 +542,13 @@ model = (spec, that) ->
                     set: (new_value) ->
                         if typeof new_value != data_def[prop] and
                             (new_value != null and new_value != undefined)
-                                throw new TypeError
+                                throw new TypeError()
 
                         dirty = true
                         set_value = new_value
                     get: ->
+                        if deleted == true
+                            throw new TypeError()
                         return set_value
                 })
             )(prop)
@@ -576,10 +567,16 @@ model = (spec, that) ->
                 for key, value of data_def
                     data[key] = ret[key]
 
+                req_type = if ret.string_id? then 'PUT' else 'POST'
+                url = spec.url
+
+                if req_type == 'PUT'
+                    url += ret.string_id
+
                 p.open {
-                    url: spec.url
+                    url: url
                     data: data
-                    type: 'POST'
+                    type: req_type
                     success: (data) ->
                         for key, value of data.data
                             ret[key] = value
@@ -587,6 +584,22 @@ model = (spec, that) ->
 
                         callback()
                 }
+
+        ret['__delete'] = (callback) ->
+            p.open {
+                url: spec.url + ret.string_id
+                type: 'DELETE'
+                success: (data) ->
+                    for el,i in managed
+                        if el == ret
+                            # Splice is not used for performance reasons
+                            managed[i] = undefined
+                            break
+
+                    ret = undefined
+                    deleted = true
+                    callback()
+            }
 
         return ret
 

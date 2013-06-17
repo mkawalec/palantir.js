@@ -11,7 +11,7 @@ from sqlalchemy import Column, Integer, String, Sequence
 
 import random
 
-from flask.ext.classy import FlaskView
+from flask.ext.classy import FlaskView,route
 
 from datetime import datetime
 
@@ -148,6 +148,20 @@ class TestView(FlaskView):
         except IntegrityError:
             db_session.rollback()
             abort(500)
+
+    @crossdomain(origin='*')
+    @route('/<id>', methods=['DELETE'])
+    def delete(self, id):
+        try:
+            item = db_session.query(TestItem).\
+                    filter(TestItem.string_id == id).\
+                    one()
+        except NoResultFound:
+            abort(404)
+
+        db_session.delete(item)
+        return jsonify(status='succ')
+
 
 
 

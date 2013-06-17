@@ -98,7 +98,7 @@ asyncTest 'keys_test', ->
             ok new_obj.name == 'sdsd'
             ok typeof new_obj.string_id == 'string'
 
-asyncTest 'submit_test', ->
+asyncTest 'submit_delete_test', ->
     p = palantir(spec)
     test_model = p.model.init {
         id: 'string_id'
@@ -111,8 +111,14 @@ asyncTest 'submit_test', ->
         stop()
         test_model.submit ->
             start()
-            console.log new_obj.string_id, new_obj.name
             ok typeof new_obj.string_id == 'string'
+            console.log new_obj.string_id
+            stop()
+            new_obj.__delete ->
+                start()
+                console.log new_obj, new_obj.name
+                ok typeof new_obj == undefined
+
 
 
 
