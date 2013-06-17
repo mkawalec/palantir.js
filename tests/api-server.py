@@ -2,6 +2,7 @@ from flask import (Flask, request, abort,
         jsonify, g)
 
 from sqlalchemy import create_engine
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import scoped_session, sessionmaker, state
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm.exc import NoResultFound
@@ -50,7 +51,7 @@ def gen_filename(chars=12):
     return ''.join(random.sample(CHARS, chars))
 
 def stringify_class(obj, one=None):
-    restricted = ['id', 'disabled', 'added_quota']
+    restricted = ['id', 'disabled']
     if isinstance(obj, dict):
         ret = {}
         for el in obj:
@@ -134,6 +135,19 @@ class TestView(FlaskView):
     def spec(self):
         ret = db_session.query(TestItem).first()
         return jsonify(data=class_spec(ret))
+
+    @crossdomain(origin='*')
+    def post(self):
+        added = TestItem(request.form.get('name'))
+        db_session.add(added)
+
+        try:
+            db_session.commit()
+            added.string_id
+            return jsonify(data=stringify_class(added))
+        except IntegrityError:
+            db_session.rollback()
+            abort(500)
 
 
 

@@ -71,6 +71,7 @@ asyncTest 'test_models', ->
         url: 'http://localhost:5000/'
     }
 
+
     test_model.get (data) ->
         start()
         ok data[0].__dirty == false
@@ -87,8 +88,33 @@ asyncTest 'keys_test', ->
         url: 'http://localhost:5000/'
     }
 
-    test_model.keys ->
+    test_model.new (new_obj)->
         start()
-        ok(true)
+        new_obj.name = 'sdsd'
+        ok new_obj.name == 'sdsd'
+        stop()
+        new_obj.__submit ->
+            start()
+            ok new_obj.name == 'sdsd'
+            ok typeof new_obj.string_id == 'string'
+
+asyncTest 'submit_test', ->
+    p = palantir(spec)
+    test_model = p.model.init {
+        id: 'string_id'
+        url: 'http://localhost:5000/'
+    }
+
+    test_model.new (new_obj) ->
+        start()
+        new_obj.name = 'sdsd'
+        stop()
+        test_model.submit ->
+            start()
+            console.log new_obj.string_id, new_obj.name
+            ok typeof new_obj.string_id == 'string'
+
+
+
 
 

@@ -483,7 +483,8 @@ model = (spec, that) ->
 
     last = null
     last_params = null
-    spec = null
+    data_def = null
+    managed = []
 
     that.get = (callback, params, error) ->
         last_params = params ? {}
@@ -499,6 +500,7 @@ model = (spec, that) ->
                     for obj in data.data
                         ret.push makeobj obj
 
+                    managed.push(ret)
                     callback ret
                 error: error
                 palantir_timeout: 3600
@@ -509,27 +511,35 @@ model = (spec, that) ->
         that.get callback, last_params
 
     that.submit = (callback) ->
-        return
+        for el in managed
+            if el.__dirty
+                el.__submit callback
 
-    that.new = ->
-        return
+    that.new = (callback) ->
+        that.keys ->
+            new_def = _helpers.deep_copy(data_def)
+            for key, value of new_def
+                new_def[key] = undefined
+            ret = makeobj(new_def, true)
+
+            managed.push(ret)
+
+            callback ret
 
     that.keys = (callback) ->
         p.open {
             url: spec.url + 'spec/'
             success: (data) ->
-                spec = normalize data.data
+                data_def = normalize data.data
                 callback _.keys data.data
         }
-            
 
     that.init = (params) ->
         spec.id = params.id
         spec.url = params.url
         return that
 
-    makeobj = (dict) ->
-        dirty = false
+    makeobj = (dict, dirty=false) ->
         ret = {}
 
         for prop, value of dict
@@ -541,8 +551,9 @@ model = (spec, that) ->
                 set_value = value
                 Object.defineProperty(ret, prop, {
                     set: (new_value) ->
-                        if typeof new_value != spec[prop]
-                            throw new TypeError
+                        if typeof new_value != data_def[prop] and
+                            (new_value != null and new_value != undefined)
+                                throw new TypeError
 
                         dirty = true
                         set_value = new_value
@@ -556,19 +567,41 @@ model = (spec, that) ->
             set: (value) -> dirty = value
         })
 
+        ret['__submit'] = (callback, force=false) ->
+            if ret.__dirty == false and not force
+                return
+
+            that.keys ->
+                data = {}
+                for key, value of data_def
+                    data[key] = ret[key]
+
+                p.open {
+                    url: spec.url
+                    data: data
+                    type: 'POST'
+                    success: (data) ->
+                        for key, value of data.data
+                            ret[key] = value
+                        ret.__dirty = false
+
+                        callback()
+                }
+
         return ret
 
     normalize = (data) ->
         for key, value of data
             if value == 'unicode' or value == 'str' or value == 'text'
-                value = 'string'
+                data[key] = 'string'
             if value == 'int' or value == 'decimal'
-                value = 'number'
+                data[key] = 'number'
 
         return data
 
     inheriter = _.partial init, model, that, spec
     p = inheriter palantir
+    _helpers = inheriter helpers
 
     return that
 
@@ -607,7 +640,6 @@ palantir = singleton((spec) ->
 
     save_cache = (fn, cache_key, new_timeout) ->
                     (data) ->
-                        console.log 'saving'
                         if not data.req_time?
                             if typeof data == 'string'
                                 _cache.set(cache_key, { data: data }, new_timeout)
@@ -644,14 +676,14 @@ palantir = singleton((spec) ->
             req_data.type = 'GET'
 
         key = _cache.genkey req_data
+        args = [$.ajax, req_data, req_data.tout, req_data.caching]
 
         req_data.error = on_error(req_data.success, req_data.error, key)
         if req_data.type == 'GET' and req_data.palantir_cache != false
             req_data.success = save_cache(req_data.success, key, 
                 req_data.palantir_timeout)
-
-        args = [$.ajax, req_data, req_data.tout, req_data.caching]
-        promise(cached_memoize, args, key)()
+            return promise(cached_memoize, args, key)()
+        $.ajax req_data
 
     that.template = (name, where, object={}) ->
         that.open {
