@@ -1,0 +1,146 @@
+from flask import (Flask, request, abort,
+        jsonify, g)
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker, state
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm.exc import NoResultFound
+
+from sqlalchemy import Column, Integer, String, Sequence
+
+import random
+
+from flask.ext.classy import FlaskView
+
+from datetime import datetime
+
+from crossdomain import crossdomain
+
+engine = create_engine('sqlite:////tmp/blah.db')
+db_session = scoped_session(sessionmaker(autocommit=False,
+                                         autoflush=False,
+                                         bind=engine))
+
+Base = declarative_base()
+Base.query = db_session.query_property()
+
+CHARS = 'abcdefghijklmnoprstuwqxyzABCDEFGHIJKLMNOPRSTUWQXYZ0123456789'
+
+class TestItem(Base):
+    __tablename__ = 'tests'
+    id = Column(Integer, Sequence('tests_id_seq'),
+            primary_key=True)
+
+    name = Column(String(400), nullable=True)
+    string_id = Column(String(12), unique=True)
+
+    def __init__(self, name=None):
+        self.string_id = gen_filename()
+        self.name = name
+
+def init_db():
+    Base.metadata.create_all(engine)
+
+    for i in range(100):
+        temp = TestItem(gen_filename())
+        db_session.add(temp)
+    db_session.commit()
+
+def gen_filename(chars=12):
+    return ''.join(random.sample(CHARS, chars))
+
+def stringify_class(obj, one=None):
+    restricted = ['id', 'disabled', 'added_quota']
+    if isinstance(obj, dict):
+        ret = {}
+        for el in obj:
+            ret[el] = stringify_class(obj[el])
+    elif isinstance(obj, list):
+        ret = []
+        for el in obj:
+            ret.append(stringify_class(el))
+
+    else:
+        ret = {}
+        for el in obj.__dict__:
+            # We don't want to publish private ids
+            if el in restricted or el[0] == '_':
+                continue
+            if isinstance(obj.__dict__[el], datetime):
+                ret[el] = unicode(obj.__dict__[el])
+            elif isinstance(obj.__dict__[el], state.InstanceState):
+                continue
+            elif isinstance(obj.__dict__[el], list):
+                prop = []
+                for element in obj.__dict__[el]:
+                    prop.append(stringify_class(element))
+                ret[el] = prop
+            elif hasattr(obj.__dict__[el], '__dict__'):
+                ret[el] = stringify_class(obj.__dict__[el])
+            else:
+                ret[el] = obj.__dict__[el]
+
+    return ret
+
+def class_spec(instance, restricted=[]):
+    restricted.extend(['id', 'disabled'])
+
+    ret = {}
+    for key in instance.__dict__:
+        if key not in restricted and key[0] != '_':
+            ret[key] = instance.__dict__[key].__class__.__name__
+
+    return ret
+
+app = Flask(__name__)
+
+class TestView(FlaskView):
+    @crossdomain(origin='*')
+    def index(self):
+        limit = request.args.get('limit')
+        try:
+            limit = int(limit)
+            if limit > 30:
+                limit = 30
+        except (ValueError, TypeError):
+            limit = 30
+
+        ret = db_session.query(TestItem)    
+
+        after = request.args.get('after')
+        if after:
+            stmt = db_session.query(TestItem).\
+                filter(TestItem.string_id == after).subquery()
+
+            ret = ret.\
+                    filter(TestItem.id > stmt.c.id)
+
+        try:
+            ret = ret.\
+                order_by(TestItem.id).\
+                limit(limit+1).\
+                all()
+        except NoResultFound:
+            abort(409)
+
+        if len(ret) == limit+1:
+            more = True
+        else:
+            more = False
+
+        return jsonify(data=stringify_class(ret), more=more)
+
+    @crossdomain(origin='*')
+    def spec(self):
+        ret = db_session.query(TestItem).first()
+        return jsonify(data=class_spec(ret))
+
+
+
+TestView.register(app, route_base='/')
+
+if __name__ == '__main__':
+    init_db()
+    app.run(debug=True)
+
+

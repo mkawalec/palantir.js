@@ -482,32 +482,46 @@ model = (spec, that) ->
     autosubmit = spec.autosubmit ? false
 
     last = null
+    last_params = null
+    spec = null
 
     that.get = (callback, params, error) ->
-        p.open {
-            url: spec.url
-            data: params
-            contentType: 'json'
-            success: (data) ->
-                last = data.data[data.data.length-1][spec.id]
+        last_params = params ? {}
 
-                ret = []
-                for obj in data.data
-                    ret.push makeobj obj
+        that.keys -> 
+            p.open {
+                url: spec.url
+                data: params
+                success: (data) ->
+                    last = data.data[data.data.length-1][spec.id]
 
-                callback ret
-            error: error
-            palantir_timeout: 3600
-        }
+                    ret = []
+                    for obj in data.data
+                        ret.push makeobj obj
+
+                    callback ret
+                error: error
+                palantir_timeout: 3600
+            }
 
     that.more = (callback) ->
-        return
+        last_params['after'] = last
+        that.get callback, last_params
 
     that.submit = (callback) ->
         return
 
     that.new = ->
         return
+
+    that.keys = (callback) ->
+        p.open {
+            url: spec.url + 'spec/'
+            success: (data) ->
+                spec = normalize data.data
+                callback _.keys data.data
+        }
+            
 
     that.init = (params) ->
         spec.id = params.id
@@ -519,10 +533,17 @@ model = (spec, that) ->
         ret = {}
 
         for prop, value of dict
+            if typeof value == 'object'
+                ret[prop] = value
+                continue
+
             ((prop) ->
                 set_value = value
                 Object.defineProperty(ret, prop, {
                     set: (new_value) ->
+                        if typeof new_value != spec[prop]
+                            throw new TypeError
+
                         dirty = true
                         set_value = new_value
                     get: ->
@@ -536,6 +557,15 @@ model = (spec, that) ->
         })
 
         return ret
+
+    normalize = (data) ->
+        for key, value of data
+            if value == 'unicode' or value == 'str' or value == 'text'
+                value = 'string'
+            if value == 'int' or value == 'decimal'
+                value = 'number'
+
+        return data
 
     inheriter = _.partial init, model, that, spec
     p = inheriter palantir
@@ -577,6 +607,7 @@ palantir = singleton((spec) ->
 
     save_cache = (fn, cache_key, new_timeout) ->
                     (data) ->
+                        console.log 'saving'
                         if not data.req_time?
                             if typeof data == 'string'
                                 _cache.set(cache_key, { data: data }, new_timeout)

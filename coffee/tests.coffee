@@ -68,17 +68,27 @@ asyncTest 'test_models', ->
     p = palantir(spec)
     test_model = p.model.init {
         id: 'string_id'
-        url: 'test_model.json'
+        url: 'http://localhost:5000/'
     }
 
-    test_model = p.model.get (data) ->
+    test_model.get (data) ->
         start()
         ok data[0].__dirty == false
-        ok data[0].name == 'A name of a first object'
 
         data[0].name = 'test'
         ok data[0].__dirty == true
         ok data[0].name == 'test'
-    
+
+
+asyncTest 'keys_test', ->
+    p = palantir(spec)
+    test_model = p.model.init {
+        id: 'string_id'
+        url: 'http://localhost:5000/'
+    }
+
+    test_model.keys ->
+        start()
+        ok(true)
 
 
