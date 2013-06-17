@@ -70,7 +70,6 @@ asyncTest 'test_models', ->
         id: 'string_id'
         url: 'test_model.json'
     }
-    console.log 'here'
 
     test_model = p.model.get (data) ->
         start()

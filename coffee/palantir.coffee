@@ -86,6 +86,20 @@ helpers = singleton((spec) ->
             ret.push chars[Math.floor(chars.length*Math.random())]
         return ret.join ''
 
+    that.deep_copy = (obj) ->
+        if Object.prototype.toString.call(obj) == '[object Array]'
+            ret = []
+            for el in obj
+                ret.push(that.deep_copy(el))
+            return ret
+        else if typeof obj == 'object'
+            ret = {}
+            for param, value of obj
+                ret[param] = that.deep_copy(value)
+            return ret
+
+        return obj
+
     return that
 )
 
@@ -352,6 +366,8 @@ template = (spec, that) ->
 
 cache = singleton((spec) ->
     that = {}
+    _helpers = helpers(spec)
+
     timeout = spec.timeout ? 60
 
     # A cache object structure:
@@ -374,7 +390,7 @@ cache = singleton((spec) ->
             if has_timeout(cache[key])
                 that.delete(key)
             else    
-                return cache[key].payload
+                return _helpers.deep_copy(cache[key].payload)
         return undefined
 
     that.set = (key, value, new_timeout=timeout) ->
@@ -499,11 +515,12 @@ model = (spec, that) ->
 
     makeobj = (dict) ->
         dirty = false
+        ret = {}
 
         for prop, value of dict
             ((prop) ->
                 set_value = value
-                Object.defineProperty(dict, prop, {
+                Object.defineProperty(ret, prop, {
                     set: (new_value) ->
                         dirty = true
                         set_value = new_value
@@ -512,12 +529,12 @@ model = (spec, that) ->
                 })
             )(prop)
 
-        Object.defineProperty(dict, '__dirty', {
+        Object.defineProperty(ret, '__dirty', {
             get: -> dirty
             set: (value) -> dirty = value
         })
 
-        return dict
+        return ret
 
     inheriter = _.partial init, model, that, spec
     p = inheriter palantir
@@ -574,7 +591,7 @@ palantir = singleton((spec) ->
                         if cached?
                             if cached != 'waiting'
                                 return fn_succ cached
-                            delete _cache.delete(cache_key)
+                            _cache.delete(cache_key)
 
                         _that.notify data
 
