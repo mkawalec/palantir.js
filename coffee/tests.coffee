@@ -112,12 +112,16 @@ asyncTest 'submit_delete_test', ->
         test_model.submit ->
             start()
             ok typeof new_obj.string_id == 'string'
-            console.log new_obj.string_id
             stop()
+
             new_obj.__delete ->
                 start()
-                console.log new_obj, new_obj.name
-                ok typeof new_obj == undefined
+                try
+                    typeof new_obj.string_id == undefined
+                    ok false
+                catch e
+                    ok e.type == 'DeletedError'
+                return
 
 
 

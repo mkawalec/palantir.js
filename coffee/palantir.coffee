@@ -474,6 +474,17 @@ model = (spec, that) ->
     data_def = null
     managed = []
 
+    created_models = singleton ->
+        that = {}
+        models = []
+
+        that.add = (model) ->
+            models.push model
+
+        that.get
+
+
+
     that.get = (callback, params, error) ->
         last_params = params ? {}
 
@@ -543,13 +554,14 @@ model = (spec, that) ->
                         if typeof new_value != data_def[prop] and
                             (new_value != null and new_value != undefined)
                                 throw new TypeError()
+                        check_deletion(deleted)
 
                         dirty = true
                         set_value = new_value
                     get: ->
-                        if deleted == true
-                            throw new TypeError()
+                        check_deletion(deleted)
                         return set_value
+                    )
                 })
             )(prop)
 
@@ -561,6 +573,7 @@ model = (spec, that) ->
         ret['__submit'] = (callback, force=false) ->
             if ret.__dirty == false and not force
                 return
+            check_deletion(deleted)
 
             that.keys ->
                 data = {}
@@ -583,9 +596,12 @@ model = (spec, that) ->
                         ret.__dirty = false
 
                         callback()
+                    error: callback
                 }
 
         ret['__delete'] = (callback) ->
+            check_deletion(deleted)
+
             p.open {
                 url: spec.url + ret.string_id
                 type: 'DELETE'
@@ -599,9 +615,18 @@ model = (spec, that) ->
                     ret = undefined
                     deleted = true
                     callback()
+                error: callback
             }
 
         return ret
+
+    check_deletion = (deleted) ->
+        if deleted == true
+            throw { 
+                type: 'DeletedError'
+                message: 'The object doesn\'t exist any more'
+            }
+
 
     normalize = (data) ->
         for key, value of data
