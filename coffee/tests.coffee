@@ -121,10 +121,38 @@ asyncTest 'submit_delete_test', ->
                     ok false
                 catch e
                     ok e.type == 'DeletedError'
-                return
+
+test 'test_model_registration', ->
+    p = palantir(spec)
+    test_model = p.model.init {
+        id: 'string_id'
+        url: 'http://localhost:5000/'
+    }
+    test_model2 = p.model.init {
+        id: 'string_id'
+        url: 'http://localhost:5000/'
+    }
+
+    ok test_model._all_models().length > 1
+    ok test_model2._all_models().length > 1
 
 
+asyncTest 'Test object deletion by the Model', ->
+    p = palantir(spec)
+    test_model3 = p.model.init {
+        id: 'string_id'
+        url: 'http://localhost:5000/'
+    }
+    test_model3.new (new_obj) ->
+        new_obj.name = 'sdadssad'
 
-
-
+        test_model3.submit ->
+            console.log 'callback called'
+            test_model3.delete new_obj, ->
+                start()
+                try
+                    typeof new_obj.string_id == undefined
+                    ok false
+                catch e
+                    ok e.type == 'DeletedError'
 

@@ -146,6 +146,7 @@ notifier = (spec, that) ->
         0: {
             type: 'error'
             message: __ 'An unspecified communication error has occured'
+        }
     }
 
     messages = {
@@ -483,7 +484,7 @@ model = (spec, that) ->
     data_def = null
     managed = []
 
-    created_models = singleton ->
+    created_models = (singleton ->
         that = {}
         models = []
 
@@ -493,6 +494,7 @@ model = (spec, that) ->
         that.get = ->
             return models
         return that
+    )()
 
     that.get = (callback, params, error) ->
         last_params = params ? {}
@@ -519,13 +521,19 @@ model = (spec, that) ->
         that.get callback, last_params
 
     that.submit = (callback) ->
-        for el in managed
-            if el.__dirty
+        for el in (_.filter managed, (item) -> if item? then true else false)
+            if el.__dirty == true
                 el.__submit callback
 
     that.submit_all = (callback) ->
         for model in created_models.get()
             model.submit callback
+
+    that.delete = (object, callback) ->
+        object.__delete callback
+
+    that._all_models = ->
+        return created_models.get()
 
     that.new = (callback) ->
         that.keys ->
@@ -576,7 +584,6 @@ model = (spec, that) ->
                     get: ->
                         check_deletion(deleted)
                         return set_value
-                    )
                 })
             )(prop)
 
