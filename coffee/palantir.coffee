@@ -721,7 +721,10 @@ palantir = singleton((spec) ->
         return fn data
 
     save_cache = (fn, cache_key, new_timeout) ->
-                    (data) ->
+                    (data, text_status, request) ->
+                        if request?.getResponseHeader('Expires')?
+                            new_timeout = Date.parse(request.getReponseHeader('Expires'))
+
                         if not data.req_time?
                             if typeof data == 'string'
                                 _cache.set(cache_key, { data: data }, new_timeout)
@@ -838,4 +841,3 @@ MissingParam = (message) ->
 window.palantir = palantir
 window.singleton = singleton
 window.init = init
-#window.model = model

@@ -14,7 +14,6 @@ test 'existence_test', ->
 
 test 'methods_existence', ->
     p = palantir(spec)
-    console.log p
     ok p.route != undefined
     ok p.template != undefined
     ok p.extend_renderers != undefined
