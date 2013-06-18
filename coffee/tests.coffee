@@ -14,6 +14,7 @@ test 'existence_test', ->
 
 test 'methods_existence', ->
     p = palantir(spec)
+    console.log p
     ok p.route != undefined
     ok p.template != undefined
     ok p.extend_renderers != undefined
@@ -63,6 +64,16 @@ asyncTest 'test_gettext', ->
         ok _('Don\'t know', 'pl') == 'Don\'t know'
 
     ), 0)
+
+asyncTest 'Test notifier', ->
+    p = palantir(spec)
+
+    setTimeout((() ->
+        start()
+        p.notifier.notify({status: 500})
+        ok true
+    ), 0)
+
 
 asyncTest 'test_models', ->
     p = palantir(spec)
@@ -147,7 +158,6 @@ asyncTest 'Test object deletion by the Model', ->
         new_obj.name = 'sdadssad'
 
         test_model3.submit ->
-            console.log 'callback called'
             test_model3.delete new_obj, ->
                 start()
                 try

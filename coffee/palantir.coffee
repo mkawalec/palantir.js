@@ -4,10 +4,6 @@
 ##                          ##
 ##############################
 
-__ = (str) -> 
-    # TODO: remove ASAP
-    return str
-
 init = (initiator, public_initiator, spec, inherited) ->
     _helpers = helpers()
 
@@ -88,32 +84,82 @@ helpers = singleton((spec) ->
 
         return obj
 
+    that.delay = (fn) ->
+        setTimeout(fn, 0)
+
+    return that
+)
+
+gettext = singleton((spec, that) ->
+    if spec[0]?
+        spec = spec[0]
+    that = that ? {}
+
+    lang = spec.lang ? ($('html').attr('lang') ? 'en')
+    default_lang = spec.default_lang ? 'en'
+
+    base_url = spec.base_url ? url_root
+    translations_url = spec.translations_url ? "#{ base_url }translations/"
+
+    translations = {}
+
+    that.gettext = (text, new_lang=lang) ->
+        if translations[new_lang] == undefined
+            if new_lang != default_lang
+                getlang(new_lang)
+            else
+                return text
+
+        if translations[new_lang] == null
+            return text
+
+        if not translations[new_lang][text]?
+            return text
+        return translations[new_lang][text]
+
+    getlang = (to_get) ->
+        p.open {
+            url: "#{ translations_url+to_get }.json"
+            async: false
+            success: (data) ->
+                translations[to_get] = data
+            error: (data) ->
+                if data.status == 404
+                    translations[to_get] = null
+            palantir_timeout: 3600*48
+        }
+
+    inheriter = _.partial init, gettext, that, spec
+    p = inheriter palantir
+
     return that
 )
 
 notifier = (spec, that) ->
     that = that ? {}
+    _helpers = helpers(spec)
 
     placeholder = $('#alerts')
 
     that.notify = (req_data) ->
-        if not messages[req_data]?
-            if code_messages[req_data.status]?
-                show_message(code_messages, req_data.status)
+        if not messages.get_message(req_data)?
+            if messages.get_code_message(req_data.status)?
+                show_message(messages.get_code_message, req_data.status)
                 return
             return
 
-        show_message(messages, req_data)
+        show_message(messages.get_message, req_data)
 
     that.extend_code_messages = (data) ->
-        _.extend code_messages, data
+        messages.extend_code_messages data
 
     that.extend_messages = (data) ->
-        _.extend messages, data
+        messages.extend_messages data
           
-    show_message = (messages, key) ->
+    show_message = (fn, key) ->
+        console.log 'showing', fn(key)
         alert = $('<div/>', {
-            class: "alert alert-#{ messages[key].type }"
+            class: "alert alert-#{ fn(key).type }"
         })
 
         close_button = $('<button/>', {
@@ -122,13 +168,13 @@ notifier = (spec, that) ->
             text: 'x'
         })
         close_button.on 'click', (e) ->
-            alert.hide 'slide', 'fast', ->
+            alert.hide 'slide',  ->
                 for el in placeholder.find('.ui-effects-wrapper')
                     placeholder[0].removeChild el
 
         message_wrapper = $('<div/>', {
             class: 'message_wrapper'
-            text: messages[key].message
+            text: fn(key).message
         })
 
         alert.append close_button
@@ -136,25 +182,47 @@ notifier = (spec, that) ->
         alert.hide()
 
         placeholder.append alert
-        alert.show 'slide', 'fast'
+        alert.show 'slide'
 
-    code_messages = {
-        500: {
-            type: 'error'
-            message: __ 'An internal server error has occured'
-        }
-        0: {
-            type: 'error'
-            message: __ 'An unspecified communication error has occured'
-        }
-    }
+    inheriter = _.partial init, notifier, that, spec
+    p = inheriter(palantir)
+    __ = p.gettext.gettext
 
-    messages = {
-        1: {
-            type: 'success'
-            message: __ 'The action has succeeded'
+    messages = (singleton ->
+        code_messages = {
+            500: {
+                type: 'error'
+                message: __ 'An internal server error has occured'
+            }
+            0: {
+                type: 'error'
+                message: __ 'An unspecified communication error has occured'
+            }
         }
-    }
+
+        messages = {
+            1: {
+                type: 'success'
+                message: __ 'The action has succeeded'
+            }
+        }
+
+        that = {}
+
+        that.get_code_message = (code) ->
+            return code_messages[code]
+
+        that.get_message = (code) ->
+            return messages[code]
+
+        that.extend_code_messages = (data) ->
+            _.extend code_messages, data
+
+        that.extend_messages = (data) ->
+            _.extend messages, data
+
+        return that
+    )()
 
     return that
 
@@ -373,7 +441,7 @@ cache = singleton((spec) ->
     #   expires: int
     #   payload: Object
     # }
-    cache = {}
+    _cache = {}
     dirty = false
 
     has_timeout = (data) ->
@@ -384,11 +452,11 @@ cache = singleton((spec) ->
         return false
 
     that.get = (key) ->
-        if cache[key]
-            if has_timeout(cache[key])
+        if _cache[key]
+            if has_timeout(_cache[key])
                 that.delete(key)
             else    
-                return _helpers.deep_copy(cache[key].payload)
+                return _helpers.deep_copy(_cache[key].payload)
         return undefined
 
     that.set = (key, value, new_timeout=timeout) ->
@@ -396,13 +464,13 @@ cache = singleton((spec) ->
             expires: (new Date()).getTime()+1000*new_timeout
             payload: value
         }
-        cache[key] = payload
+        _cache[key] = payload
         dirty = true
 
         return key
 
     that.delete = (key) ->
-        delete cache[key]
+        delete _cache[key]
         return undefined
 
     that.genkey = (data) ->
@@ -412,7 +480,7 @@ cache = singleton((spec) ->
     # data persistence between reloads
     backup_job = setInterval((() ->
         if dirty == true
-            localStorage['palantir_cache'] = JSON.stringify(cache)
+            localStorage['palantir_cache'] = JSON.stringify(_cache)
             dirty = false
     ), 1000)
 
@@ -423,53 +491,8 @@ cache = singleton((spec) ->
             return
 
         if localStorage['palantir_cache']?
-            cache = JSON.parse(localStorage['palantir_cache'])
+            _cache = JSON.parse(localStorage['palantir_cache'])
     ), 0)
-
-    return that
-)
-
-gettext = singleton((spec, that) ->
-    if spec[0]?
-        spec = spec[0]
-    that = that ? {}
-
-    lang = spec.lang ? ($('html').attr('lang') ? 'en')
-    default_lang = spec.default_lang ? 'en'
-
-    base_url = spec.base_url ? url_root
-    translations_url = spec.translations_url ? "#{ base_url }translations/"
-
-    translations = {}
-
-    that.gettext = (text, new_lang=lang) ->
-        if translations[new_lang] == undefined
-            if new_lang != default_lang
-                getlang(new_lang)
-            else
-                return text
-
-        if translations[new_lang] == null
-            return text
-
-        if not translations[new_lang][text]?
-            return text
-        return translations[new_lang][text]
-
-    getlang = (to_get) ->
-        p.open {
-            url: "#{ translations_url+to_get }.json"
-            async: false
-            success: (data) ->
-                translations[to_get] = data
-            error: (data) ->
-                if data.status == 404
-                    translations[to_get] = null
-            palantir_timeout: 3600*48
-        }
-
-    inheriter = _.partial init, gettext, that, spec
-    p = inheriter palantir
 
     return that
 )
@@ -672,7 +695,6 @@ palantir = singleton((spec) ->
 
     _that = {}
     _.extend _that, helpers(spec)
-    _.extend _that, notifier(spec)
 
     routes = []
 
@@ -717,7 +739,7 @@ palantir = singleton((spec) ->
                                 return fn_succ cached
                             _cache.delete(cache_key)
 
-                        _that.notify data
+                        that.notifier.notify data
 
                         if fn_err?
                             fn_err data
@@ -760,9 +782,15 @@ palantir = singleton((spec) ->
         _template.extend_renderers(extensions)
 
     that.extend_code_messages = (data) ->
+        if not that.notifier?
+            return
+
         that.notifier.extend_code_messages data
 
     that.extend_messages = (data) ->
+        if not that.notifier?
+            return
+
         that.notifier.extend_messages data
     
     that.route = (route, fn) ->
