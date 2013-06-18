@@ -104,6 +104,12 @@ notifier = (spec, that) ->
             return
 
         show_message(messages, req_data)
+
+    that.extend_code_messages = (data) ->
+        _.extend code_messages, data
+
+    that.extend_messages = (data) ->
+        _.extend messages, data
           
     show_message = (messages, key) ->
         alert = $('<div/>', {
@@ -135,8 +141,11 @@ notifier = (spec, that) ->
     code_messages = {
         500: {
             type: 'error'
-            message: 'Nastąpił błąd serwera. Sprawa jest badana...'
+            message: __ 'An internal server error has occured'
         }
+        0: {
+            type: 'error'
+            message: __ 'An unspecified communication error has occured'
     }
 
     messages = {
@@ -742,6 +751,12 @@ palantir = singleton((spec) ->
 
     that.extend_renderers = (extensions) ->
         _template.extend_renderers(extensions)
+
+    that.extend_code_messages = (data) ->
+        that.notifier.extend_code_messages data
+
+    that.extend_messages = (data) ->
+        that.notifier.extend_messages data
     
     that.route = (route, fn) ->
         routes.push({route: route, fn: fn})
@@ -756,6 +771,9 @@ palantir = singleton((spec) ->
 
     # Constructor
     setTimeout((() ->
+        that.extend_code_messages spec.code_messages
+        that.extend_messages spec.messages
+
         $(window).on 'hashchange', (e) ->
             e.preventDefault()
             e.stopPropagation()
