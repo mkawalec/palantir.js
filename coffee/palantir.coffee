@@ -481,9 +481,9 @@ model = (spec, that) ->
         that.add = (model) ->
             models.push model
 
-        that.get
-
-
+        that.get = ->
+            return models
+        return that
 
     that.get = (callback, params, error) ->
         last_params = params ? {}
@@ -514,6 +514,10 @@ model = (spec, that) ->
             if el.__dirty
                 el.__submit callback
 
+    that.submit_all = (callback) ->
+        for model in created_models.get()
+            model.submit callback
+
     that.new = (callback) ->
         that.keys ->
             new_def = _helpers.deep_copy(data_def)
@@ -536,6 +540,8 @@ model = (spec, that) ->
     that.init = (params) ->
         spec.id = params.id
         spec.url = params.url
+        created_models.add that
+
         return that
 
     makeobj = (dict, dirty=false) ->
