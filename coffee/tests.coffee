@@ -71,7 +71,7 @@ asyncTest 'Test notifier', ->
     setTimeout((() ->
         start()
         p.notifier.notify({status: 500})
-        ok true
+        ok $('#alerts')[0].children.length > 0
     ), 0)
 
 

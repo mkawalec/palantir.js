@@ -157,7 +157,6 @@ notifier = (spec, that) ->
         messages.extend_messages data
           
     show_message = (fn, key) ->
-        console.log 'showing', fn(key)
         alert = $('<div/>', {
             class: "alert alert-#{ fn(key).type }"
         })
@@ -427,6 +426,7 @@ template = (spec, that) ->
     _.extend _libs, inheriter(palantir)
     _helpers = inheriter(helpers)
     _notifier = inheriter(notifier)
+    __ = inheriter(gettext).gettext
 
     return that
 
