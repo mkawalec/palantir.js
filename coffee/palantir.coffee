@@ -455,7 +455,7 @@ cache = singleton((spec) ->
         if _cache[key]
             if has_timeout(_cache[key])
                 that.delete(key)
-            else    
+            else if _cache[key] != undefined
                 return _helpers.deep_copy(_cache[key].payload)
         return undefined
 
@@ -476,13 +476,31 @@ cache = singleton((spec) ->
     that.genkey = (data) ->
         return data.type+data.url+JSON.stringify(data.data)
 
+    prune_old = (percent=20) ->
+        now = (new Date()).getTime()
+        keys = []
+
+        for key, value of _cache
+            keys.push({key: key, delta_t: value.expires-now})
+
+        keys = _.sortBy keys, (item) -> item.delta_t
+
+        for i in 0...keys.length*percent/100
+            delete _cache[keys[i].key]
+
+    persist = ->
+        if dirty == true
+            try
+                localStorage['palantir_cache'] = JSON.stringify(_cache)
+                dirty = false
+            catch e
+                if e.name == 'QUOTA_EXCEEDED_ERR'
+                    prune_old()
+                    persist()
+
     # Periodiacally backup to the locaCache to provide
     # data persistence between reloads
-    backup_job = setInterval((() ->
-        if dirty == true
-            localStorage['palantir_cache'] = JSON.stringify(_cache)
-            dirty = false
-    ), 1000)
+    backup_job = setInterval(persist, 1000)
 
     # Load from the localStorage and set up stuff
     setTimeout((() ->
