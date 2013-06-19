@@ -186,7 +186,6 @@ asyncTest 'Test routes', ->
         $('body').append "<a href='#' style='display:none;' "+\
             "data-route='click_test' id='#{ id }'>Click!</a>"
 
-        link = $("##{ id }")[0]
-        link.click()
+        $("##{ id }")[0].click()
 
 
