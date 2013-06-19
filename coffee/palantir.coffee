@@ -820,10 +820,10 @@ palantir = singleton((spec) ->
         () ->
             fn.apply(null, arguments)
 
-    that.goto = (route, target) ->
+    that.goto = (route, params...) ->
         matching = _.where(routes, {route: route})
         if matching.length > 0
-            matching[0].fn(target)
+            matching[0].fn.apply(null, params)
 
     # Constructor
     setTimeout((() ->
