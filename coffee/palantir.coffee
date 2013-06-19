@@ -821,6 +821,7 @@ palantir = singleton((spec) ->
             fn.apply(null, arguments)
 
     that.goto = (route, params...) ->
+        console.log 'calling goto'
         matching = _.where(routes, {route: route})
         if matching.length > 0
             matching[0].fn.apply(null, params)
@@ -837,6 +838,9 @@ palantir = singleton((spec) ->
             res = _.where(routes, {route: window.location.hash.slice(1)})
             if res.length > 0
                 res[0].fn()
+
+        $(document).on 'click', 'a[data-route]', (e) ->
+            that.goto($(e.target).attr('data-route'), [e.target])
     ), 0)
 
     inheriter = _.partial init, palantir, that, spec
