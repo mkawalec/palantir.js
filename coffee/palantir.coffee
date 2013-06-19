@@ -4,6 +4,20 @@
 ##                          ##
 ##############################
 
+stack = ->
+    that = {}
+
+    store = []
+
+    that.push = (item) ->
+        store.push(item)
+
+    that.pop = ->
+        item = store[store.length-1]
+        store.splice(store.length-1, 1)
+
+        return item
+
 init = (initiator, public_initiator, spec, inherited) ->
     _helpers = helpers()
 
