@@ -189,4 +189,33 @@ asyncTest 'Test routes', ->
         link = $("##{ id }")[0]
         link.click()
 
+asyncTest 'Parallel test', ->
+    singleton.prototype = {}
+    p = palantir({max_requests: 1})
+
+    p.open {
+        url: 'http://google.com/?q='+p.helpers.random_string()
+        success: ->
+            start()
+            ok true
+            stop()
+    }
+
+    p.open {
+        url: 'http://yahoo.com/?q='+p.helpers.random_string()
+        success: ->
+            start()
+            ok true
+            stop()
+    }
+
+    p.open {
+        url: 'http://microsoft.com/?q='+p.helpers.random_string()
+        success: ->
+            start()
+            ok true
+            stop()
+    }
+
+
 
