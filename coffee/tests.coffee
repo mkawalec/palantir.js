@@ -173,7 +173,6 @@ asyncTest 'Test routes', ->
             start()
             ok true
             ok what == 'this is a test'
-            stop()
 
         p.route 'click_test', (what) ->
             start()
