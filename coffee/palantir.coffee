@@ -10,6 +10,7 @@ stack = ->
     store = []
 
     that.push = (item) ->
+        console.log 'pushing', item
         store.push(item)
 
     that.pop = ->
@@ -741,7 +742,7 @@ palantir = singleton((spec) ->
     # TODO: Make it switchable by spec
     connection_storage = stack()
     running_requests = 0
-    max_requests = spec.max_requests ? 4
+    max_requests = spec.max_requests ? 1
 
     routes = []
 
@@ -750,10 +751,33 @@ palantir = singleton((spec) ->
     else
         tout = spec.timeout ? 3600*24*2
 
-    base_url = spec.base_url ? url_root
+    base_url = spec.base_url ? (location.href.match /\w*:\/\/[\w:]*/)[0]+'/'
     spec.base_url = base_url
 
     wait_time = spec.wait_time ? 100
+
+    pop_storage = ->
+        console.log 'running', running_requests, max_requests
+        if running_requests < max_requests
+            console.log 'in'
+            req = connection_storage.pop()
+            console.log 'req', req
+            if req?
+                console.log 'popping'
+                req()
+
+    request_finished = (fn) ->
+        () ->
+            console.log 'finished'
+            running_requests -= 1
+            
+            pop_storage()
+            fn()
+
+    wrap_request = (fn, data) ->
+        () ->
+            running_requests += 1
+            fn data
 
     cached_memoize = (fn, data, new_tout, caching=true) ->
         key = _cache.genkey(data)
@@ -765,13 +789,14 @@ palantir = singleton((spec) ->
             return data.success cached
 
         _cache.set(key, 'waiting', 15)
-        running_requests += 1
 
-        return fn data
+        data.error = request_finished data.error
+        data.success = request_finished data.success
+
+        return wrap_request(fn, data)()
 
     save_cache = (fn, cache_key, new_timeout) ->
                     (data, text_status, request) ->
-                        running_requests -= 1
 
                         if request?.getResponseHeader('Expires')?
                             new_timeout = Date.parse(request.getReponseHeader('Expires'))
@@ -786,7 +811,6 @@ palantir = singleton((spec) ->
     
     on_error = (fn_succ, fn_err, cache_key) ->
                     (data) ->
-                        running_requests -= 1
 
                         cached = _cache.get(cache_key)
 
@@ -820,8 +844,20 @@ palantir = singleton((spec) ->
         if req_data.type == 'GET' and req_data.palantir_cache != false
             req_data.success = save_cache(req_data.success, key, 
                 req_data.palantir_timeout)
-            return promise(cached_memoize, args, key)()
-        $.ajax req_data
+            if running_requests >= max_requests
+                console.log 'first'
+                return connection_storage.push promise(cached_memoize, args,key)
+            else
+                console.log 'second'
+                return promise(cached_memoize, args, key)()
+
+        if running_requests >= max_requests    
+            console.log 'third'
+            return connection_storage.push wrap_request $.ajax, req_data
+
+        console.log 'fourth'
+        (wrap_request $.ajax, req_data)()
+
 
     that.template = (name, where, object={}) ->
         that.open {
