@@ -206,7 +206,6 @@ asyncTest 'Parallel test', ->
         success: ->
             start()
             ok true
-            stop()
     }
 
     p.open {
