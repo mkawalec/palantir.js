@@ -746,7 +746,13 @@ palantir = singleton((spec) ->
     else
         tout = spec.timeout ? 3600*24*2
 
-    base_url = spec.base_url ? (location.href.match /^.*\//)[0]
+    # Magic generating the base url for the app
+    base_url = spec.base_url ? (location.href.match /^.*\//)
+    if base_url.length == 0
+        base_url = location.href
+    else
+        base_url = base_url[0]
+
     if base_url[base_url.length-1] != '/'
         base_url += '/'
     spec.base_url = base_url
