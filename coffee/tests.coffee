@@ -178,7 +178,7 @@ asyncTest 'Test routes', ->
         p.route 'click_test', (what) ->
             start()
             ok true
-            ok what[0] == link
+            ok what == link
 
         p.goto 'test_route', 'this is a test'
 

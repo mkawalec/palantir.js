@@ -840,7 +840,7 @@ palantir = singleton((spec) ->
 
         $('body').on 'click', 'a[data-route]', (e) ->
             e.preventDefault()
-            that.goto($(e.target).attr('data-route'), [e.target])
+            that.goto($(e.target).attr('data-route'), e.target)
     ), 0)
 
     inheriter = _.partial init, palantir, that, spec
