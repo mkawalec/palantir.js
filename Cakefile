@@ -17,9 +17,11 @@ build = (callback) ->
                 coffee.stdout.on 'data', (output) ->
                     final_code = UglifyJS.minify(output.toString(), {fromString: true}).code
 
-                    filename = 'js/'+row.match(/\w*/)[0]+'.js'
+                    filename = 'js/'+row.match(/\w*/)[0]
                     print 'writing ' + filename + '\n'
-                    writeFile filename, final_code, (err) ->
+                    writeFile filename+'.min.js', final_code, (err) ->
+                        if err then throw err
+                    writeFile filename+'.js', output.toString(), (err) ->
                         if err then throw err
 
                 coffee.stderr.on 'data', (data) ->
