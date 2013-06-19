@@ -3,7 +3,12 @@ fs = require 'fs'
 {print} = require 'sys'
 {spawn} = require 'child_process'
 {writeFile} = require 'fs'
-UglifyJS = require("uglify-js")
+try
+    UglifyJS = require("uglify-js")
+catch e
+    if e.code == 'MODULE_NOT_FOUND'
+        return
+    throw e
 
 build = (callback) ->
     ls = spawn 'ls', ['coffee']
@@ -15,14 +20,15 @@ build = (callback) ->
             coffee = spawn 'coffee', ['-p', '-c', 'coffee/'+row]
             ((row) ->
                 coffee.stdout.on 'data', (output) ->
-                    final_code = UglifyJS.minify(output.toString(), {fromString: true}).code
-
                     filename = 'js/'+row.match(/\w*/)[0]
                     print 'writing ' + filename + '\n'
-                    writeFile filename+'.min.js', final_code, (err) ->
-                        if err then throw err
                     writeFile filename+'.js', output.toString(), (err) ->
                         if err then throw err
+
+                    if UglifyJS?
+                        final_code = UglifyJS.minify(output.toString(), {fromString: true}).code
+                        writeFile filename+'.min.js', final_code, (err) ->
+                            if err then throw err
 
                 coffee.stderr.on 'data', (data) ->
                     process.stderr.write data.toString()
