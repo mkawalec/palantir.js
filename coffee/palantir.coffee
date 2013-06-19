@@ -485,7 +485,7 @@ cache = singleton((spec) ->
 
         keys = _.sortBy keys, (item) -> item.delta_t
 
-        for i in 0...keys.length*percent/100
+        for i in [0...(keys.length*percent/100)]
             delete _cache[keys[i].key]
 
     persist = ->
@@ -821,7 +821,6 @@ palantir = singleton((spec) ->
             fn.apply(null, arguments)
 
     that.goto = (route, params...) ->
-        console.log 'calling goto'
         matching = _.where(routes, {route: route})
         if matching.length > 0
             matching[0].fn.apply(null, params)
@@ -839,7 +838,8 @@ palantir = singleton((spec) ->
             if res.length > 0
                 res[0].fn()
 
-        $(document).on 'click', 'a[data-route]', (e) ->
+        $('body').on 'click', 'a[data-route]', (e) ->
+            e.preventDefault()
             that.goto($(e.target).attr('data-route'), [e.target])
     ), 0)
 
