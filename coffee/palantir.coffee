@@ -13,10 +13,18 @@ stack = ->
         store.push(item)
 
     that.pop = ->
+        if store.length == 0
+            return undefined
+
         item = store[store.length-1]
         store.splice(store.length-1, 1)
 
         return item
+
+    that.empty = ->
+        if store.length == 0 then return true else return false
+
+    return that
 
 init = (initiator, public_initiator, spec, inherited) ->
     _helpers = helpers()
@@ -722,11 +730,18 @@ model = (spec, that) ->
 
 palantir = singleton((spec) ->
     that = {}
+    if not spec?
+        spec = {}
     if spec[0]?
         spec = spec[0]
 
     _that = {}
     _.extend _that, helpers(spec)
+
+    # TODO: Make it switchable by spec
+    connection_storage = stack()
+    running_requests = 0
+    max_requests = spec.max_requests ? 4
 
     routes = []
 
@@ -750,10 +765,14 @@ palantir = singleton((spec) ->
             return data.success cached
 
         _cache.set(key, 'waiting', 15)
+        running_requests += 1
+
         return fn data
 
     save_cache = (fn, cache_key, new_timeout) ->
                     (data, text_status, request) ->
+                        running_requests -= 1
+
                         if request?.getResponseHeader('Expires')?
                             new_timeout = Date.parse(request.getReponseHeader('Expires'))
 
@@ -767,6 +786,8 @@ palantir = singleton((spec) ->
     
     on_error = (fn_succ, fn_err, cache_key) ->
                     (data) ->
+                        running_requests -= 1
+
                         cached = _cache.get(cache_key)
 
                         if cached?
