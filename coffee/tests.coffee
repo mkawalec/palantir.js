@@ -166,25 +166,29 @@ asyncTest 'Test object deletion by the Model', ->
                     ok e.type == 'DeletedError'
 
 asyncTest 'Test routes', ->
-    p = palantir(spec)
+    p = palantir(_.extend spec, {blah: 'bam'})
 
     p.helpers.delay ->
-        p.route 'test_route', (what) ->
+        p.route 'test_route', (params) ->
             start()
             ok true
-            ok what == 'this is a test'
+            ok params['test_param'] == 'this is a test'
+
+            ok params['param1'] == 'test1'
+            ok params['param2'] == 'test2'
             stop()
 
-        p.route 'click_test', (what) ->
+        p.route 'click_test', (params) ->
             start()
             ok true
-            ok what == link
+            ok params['target'] == $(link).attr 'id'
+            ok params['param1'] == 'test'
 
-        p.goto 'test_route', 'this is a test'
+        p.goto 'test_route?param1=test1&param2=test2', {test_param: 'this is a test'}
 
         id = p.helpers.random_string()
         $('body').append "<a href='#' style='display:none;' "+\
-            "data-route='click_test' id='#{ id }'>Click!</a>"
+            "data-route='click_test?param1=test' id='#{ id }'>Click!</a>"
 
         link = $("##{ id }")[0]
         link.click()
