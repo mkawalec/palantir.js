@@ -160,6 +160,8 @@ gettext = singleton((spec, that) ->
     default_lang = spec.default_lang ? 'en'
 
     translations_url = spec.translations_url ? "#{ spec.base_url }translations/"
+    if translations_url.indexOf('://') == -1
+        translations_url = spec.base_url + translations_url
 
     translations = {}
 
