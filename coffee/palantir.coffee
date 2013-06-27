@@ -624,7 +624,8 @@ model = (spec, that) ->
                 palantir_timeout: 3600
             }
 
-    that.more = (callback) ->
+    that.more = (callback, params) ->
+        last_params = params ? last_params
         last_params['after'] = last
         that.get callback, last_params
 
