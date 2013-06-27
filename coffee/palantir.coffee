@@ -594,21 +594,29 @@ model = (spec, that) ->
         return that
     )()
 
-    that.get = (params, callback, error_callback) ->
+    that.get = (callback, params, error_callback) ->
         last_params = params ? {}
+
+        url = spec.url
+        if last_params.id?
+            url += params.id
+            delete params.id
 
         that.keys -> 
             p.open {
-                url: spec.url
-                data: params
+                url: url
+                data: last_params
                 success: (data) ->
                     last = data.data[data.data.length-1][spec.id]
 
                     ret = []
-                    for obj in data.data
-                        ret.push makeobj obj
+                    if Object.prototype.toString.call(data.data) == '[object Array]'
+                        for obj in data.data
+                            ret.push makeobj obj
+                    else
+                        ret.push makeobj data.data
 
-                    managed.push(ret)
+                    managed.concat(ret)
                     callback ret
                 error: error_callback
                 palantir_timeout: 3600
