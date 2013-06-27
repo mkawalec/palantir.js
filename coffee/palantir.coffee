@@ -655,6 +655,9 @@ model = (spec, that) ->
     that.init = (params) ->
         spec.id = params.id ? 'string_id'
         spec.url = params.url
+
+        if spec.url.indexOf('://') == -1
+            spec.url = spec.base_url + spec.url
         if spec.url[spec.url.length-1] != '/'
             spec.url += '/'
 
