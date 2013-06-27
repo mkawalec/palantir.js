@@ -998,6 +998,8 @@ palantir = singleton((spec) ->
                 hashchange(e)
             )(routes)
 
+        hashchange()
+
         $('body').on 'click', 'a[data-route]', (e) ->
             e.preventDefault()
             that.goto($(e.target).attr('data-route'), {target: $(e.target).attr 'id'})
