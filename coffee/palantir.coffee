@@ -155,6 +155,7 @@ gettext = singleton((spec, that) ->
     that = that ? {}
 
     lang = spec.lang ? ($('html').attr('lang') ? 'en')
+    lang = if lang.length == 0 then 'en' else lang
     default_lang = spec.default_lang ? 'en'
 
     translations_url = spec.translations_url ? "#{ spec.base_url }translations/"
