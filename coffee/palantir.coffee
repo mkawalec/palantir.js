@@ -1017,10 +1017,6 @@ palantir = singleton((spec) ->
     return that
 )
 
-MissingParam = (message) ->
-    @name = 'MissingParam'
-    @message = message ? 'A parameter is missing'
-
 # Exports to global scope
 window.palantir = palantir
 window.singleton = singleton
