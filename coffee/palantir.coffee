@@ -588,15 +588,15 @@ model = (spec, that) ->
     step_index = -1
 
     created_models = (singleton ->
-        that = {}
+        _that = {}
         models = []
 
-        that.add = (model) ->
+        _that.add = (model) ->
             models.push model
 
-        that.get = ->
+        _that.get = ->
             return models
-        return that
+        return _that
     )()
 
     that.get = (callback, params, error_callback) ->
