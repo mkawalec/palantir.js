@@ -45,6 +45,7 @@ init = (initiator, public_initiator, spec, inherited) ->
     if inherited.prototype.call_ids?
         if (_.intersection initiator.prototype.callers, inherited.prototype.call_ids).length > 0
             return inherited.prototype.call_that
+
     return inherited spec
 
 singleton = (fn) ->
@@ -622,7 +623,7 @@ model = (spec, that) ->
                     managed.concat(ret)
                     callback ret, {more: data.more, less: data.less}
                 error: error_callback
-                palantir_timeout: 3600
+                palantir_timeout: 300
             }
 
     that.more = (callback, params) ->
