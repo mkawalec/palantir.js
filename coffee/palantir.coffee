@@ -990,9 +990,6 @@ palantir = singleton((spec) ->
         that.extend_code_messages spec.code_messages
         that.extend_messages spec.messages
 
-        # So that only the latest instance of palantir
-        # is in charge of events. Chaos is not appreciated
-        $(window).off 'hashchange'
         $(window).on 'hashchange', (e) ->
             ((routes) ->
                 hashchange(e)
