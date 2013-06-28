@@ -21,9 +21,6 @@ stack = ->
 
         return item
 
-    that.empty = ->
-        if store.length == 0 then return true else return false
-
     return that
 
 init = (initiator, public_initiator, spec, inherited) ->
