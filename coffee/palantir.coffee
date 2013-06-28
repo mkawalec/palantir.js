@@ -617,7 +617,7 @@ model = (spec, that) ->
                         for obj in data.data
                             ret.push makeobj obj
                     else
-                        ret.push makeobj data.data
+                        ret = makeobj data.data
 
                     managed.concat(ret)
                     callback ret, {more: data.more, less: data.less}
