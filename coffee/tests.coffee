@@ -143,8 +143,8 @@ test 'test_model_registration', ->
         url: 'http://localhost:5000/'
     }
 
-    ok test_model._all_models().length > 1
-    ok test_model2._all_models().length > 1
+    ok p.model._all_models().length > 1
+    ok p.model._all_models().length > 1
 
 
 asyncTest 'Test object deletion by the Model', ->
@@ -205,6 +205,10 @@ asyncTest 'Parallel test', ->
             start()
             ok true
             stop()
+        error: (data) ->
+            start()
+            ok false
+            stop()
     }
 
     p.open {
@@ -212,6 +216,9 @@ asyncTest 'Parallel test', ->
         success: ->
             start()
             ok true
+        error: ->
+            start()
+            ok false
     }
 
     p.open {
@@ -220,7 +227,8 @@ asyncTest 'Parallel test', ->
             start()
             ok true
             stop()
+        error: (data) ->
+            start()
+            ok false
+            stop()
     }
-
-
-

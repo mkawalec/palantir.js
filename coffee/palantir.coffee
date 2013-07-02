@@ -582,6 +582,113 @@ cache = singleton((spec) ->
     return that
 )
 
+validators = (spec, that) ->
+    that = that ? {}
+
+    validators_db = (singleton ->
+        _that = {}
+        _validators = {}
+
+        _that.apply = (validator, params) ->
+            if _validators[validator] == undefined
+                return undefined
+            return _validators[validator].apply null, params
+
+        _that.extend = (to_extend) ->
+            _.extend _validators, to_extend
+
+        _that.get = ->
+            return _validators
+        return _that
+    )()
+
+    that.discover = (where) ->
+        if not where?
+            where = spec.placeholder
+
+        for form in where.find('.form')
+            form.on 'submit', (e) ->
+                console.log e
+            form.on 'click', "[data-submit='true']", (e) ->
+                console.log e
+
+    that.extend = (to_extend) ->
+        validators_db.extend to_extend
+
+    parse_validators = (field) ->
+        to_parse = $(field).attr('data-validators')
+        parsed = []
+
+        for validator in to_parse.split(';')
+            split = validator.split('(')
+            name = $.trim split[0]
+
+            # The dictionary on position 1 holds named params
+            ret_params = [field, {}]
+
+            if split.length > 1
+                split[1] = $.trim split[1]
+                params = split[1].slice(0, split[1].length-1)
+                for param in params.split(',')
+                    param = ($.trim(param)).split('=')
+                    if param.length > 1
+                        tmp = {}
+                        tmp[param[0]] = param[1]
+                        _.extend ret_params[1], tmp
+                    else
+                        ret_params.push(param[0])
+            else
+                ret_params.push [name, undefined]
+
+            parsed.push [name, ret_params]
+            
+
+        return parsed
+
+    test = (where) ->
+        errors = []
+        for field in where.find("[data-validators]")
+            for validator,params in parse_validators(field)
+                err = validators_db.apply validator, params
+                if err? and err.length > 0
+                    errors.push [field].concat(err)
+
+        return errors
+
+    that.extend({
+        length: (object, kwargs, args...) ->
+            kwargs.min = kwargs.min ? (args[0] ? 0)
+            kwargs.max = kwargs.max ? (args[1] ? Number.MAX_VALUE)
+            errors = []
+
+            length = $.trim(object.value).length
+            if length < kwargs.min
+                errors.push(__("The input of length #{ length } you entered"+\
+                    " is too short. The minimum length is #{ kwargs.min }"))
+            if length > kwargs.max
+                errors.push(__("The input of length #{ length } you entered"+\
+                    " is too long. The maximum length is #{ kwargs.max }"))
+            return errors
+
+        email: (object, kwargs, args...) ->
+            regex = kwargs.regex if kwargs.regex? else \
+                /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$/
+            if not $.trim(object.value).match regex
+                return [__('The email you entered is incorrect')]
+            return null
+
+        required: (object) ->
+            if $.trim(object.value).length == 0
+                return [__('This field is obligatory')]
+            return null
+    })
+
+    inheriter = _.partial init, validators, that, spec
+    p = inheriter palantir
+    __ = p.gettext.gettext
+
+    return that
+        
 model = (spec, that) ->
     that = that ? {}
 
@@ -597,13 +704,13 @@ model = (spec, that) ->
 
     created_models = (singleton ->
         _that = {}
-        models = []
+        _models = []
 
-        _that.add = (model) ->
-            models.push model
+        _that.add = (new_model) ->
+            _models.push new_model
 
         _that.get = ->
-            return models
+            return _models
         return _that
     )()
 
@@ -1020,6 +1127,7 @@ palantir = singleton((spec) ->
     that.notifier = inheriter notifier
     that.helpers = inheriter helpers
     that.gettext = inheriter gettext
+    that.validators = inheriter validators
     that.model = inheriter model
 
     return that
