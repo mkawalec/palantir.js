@@ -232,3 +232,12 @@ asyncTest 'Parallel test', ->
             ok false
             stop()
     }
+
+asyncTest 'Validator test', ->
+    p = palantir()
+
+    p.helpers.delay ->
+        start()
+        ok p.validators?
+        p.validators.init()
+        console.log p.validators.test()

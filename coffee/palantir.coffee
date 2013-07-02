@@ -584,6 +584,8 @@ cache = singleton((spec) ->
 
 validators = (spec, that) ->
     that = that ? {}
+    _helpers = helpers spec
+    managed = []
 
     validators_db = (singleton ->
         _that = {}
@@ -607,13 +609,29 @@ validators = (spec, that) ->
             where = spec.placeholder
 
         for form in where.find('.form')
+            form = $(form)
+            form.attr 'data-validation_id', _helpers.random_string()
+            managed.push form
+
             form.on 'submit', (e) ->
                 console.log e
             form.on 'click', "[data-submit='true']", (e) ->
                 console.log e
 
+    that.init = that.discover
+
     that.extend = (to_extend) ->
         validators_db.extend to_extend
+
+    that.test = ->
+        errors = {}
+        for form in managed
+            errors[form.attr('data-validation_id')] = test form
+        return errors
+
+    inheriter = _.partial init, validators, that, spec
+    p = inheriter palantir
+    __ = p.gettext.gettext
 
     parse_validators = (field) ->
         to_parse = $(field).attr('data-validators')
@@ -637,8 +655,6 @@ validators = (spec, that) ->
                         _.extend ret_params[1], tmp
                     else
                         ret_params.push(param[0])
-            else
-                ret_params.push [name, undefined]
 
             parsed.push [name, ret_params]
             
@@ -648,10 +664,13 @@ validators = (spec, that) ->
     test = (where) ->
         errors = []
         for field in where.find("[data-validators]")
-            for validator,params in parse_validators(field)
-                err = validators_db.apply validator, params
+            for validator in parse_validators(field)
+                err = validators_db.apply validator[0], validator[1]
                 if err? and err.length > 0
-                    errors.push [field].concat(err)
+                    errors.push {
+                        field: field
+                        errors: err
+                    }
 
         return errors
 
@@ -682,10 +701,6 @@ validators = (spec, that) ->
                 return [__('This field is obligatory')]
             return null
     })
-
-    inheriter = _.partial init, validators, that, spec
-    p = inheriter palantir
-    __ = p.gettext.gettext
 
     return that
         
@@ -935,6 +950,8 @@ palantir = singleton((spec) ->
     connection_storage = stack()
     running_requests = 0
     max_requests = spec.max_requests ? 4
+
+    spec.placeholder = spec.placeholder ? $('body')
 
     routes = []
 
