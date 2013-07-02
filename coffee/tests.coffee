@@ -170,7 +170,8 @@ asyncTest 'Test routes', ->
 
     p.helpers.delay ->
         p.route 'test_route', (params) ->
-            start()
+            if QUnit.config.semaphore > 0
+                start()
             ok true
             ok params['test_param'] == 'this is a test'
 
@@ -179,7 +180,8 @@ asyncTest 'Test routes', ->
             stop()
 
         p.route 'click_test', (params) ->
-            start()
+            if QUnit.config.semaphore > 0
+                start()
             ok true
             ok params['target'] == $(link).attr 'id'
             ok params['param1'] == 'test'
