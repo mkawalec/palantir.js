@@ -532,7 +532,16 @@ cache = singleton((spec) ->
         return undefined
 
     that.genkey = (data) ->
-        return data.type+data.url+JSON.stringify(data.data)
+        to_join = ["type:#{ data.type }", "url:#{ data.url }",
+            "data: #{ JSON.stringify(data.data) }"]
+        return to_join.join ';'
+
+    that.delall = (url) ->
+        searched = "url:#{ url }"
+        for key,value of _cache
+            if key.indexOf(searched) != -1
+                dirty = true
+                delete _cache[key]
 
     prune_old = (percent=20) ->
         now = (new Date()).getTime()
@@ -929,6 +938,9 @@ palantir = singleton((spec) ->
 
         if running_requests >= max_requests    
             return connection_storage.push wrap_request $.ajax, req_data
+
+        if req_data.type != 'GET'
+            _cache.delall req_data.url
 
         (wrap_request $.ajax, req_data)()
 
