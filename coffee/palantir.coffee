@@ -708,7 +708,7 @@ model = (spec, that) ->
 
         created_models.add that
 
-        return models spec
+        return model spec
 
     makeobj = (dict, dirty=false) ->
         ret = {}
