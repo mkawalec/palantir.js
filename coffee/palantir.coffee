@@ -750,7 +750,13 @@ model = (spec, that) ->
                         ret = makeobj data.data
 
                     managed.concat(ret)
-                    callback ret, {more: data.more, less: data.less}
+
+                    other_params = {}
+                    for key,value of data
+                        if key != 'data'
+                            other_params[key] = value
+
+                    callback ret, other_params
                 error: error_callback
                 palantir_timeout: 300
             }
