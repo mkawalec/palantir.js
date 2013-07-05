@@ -694,8 +694,6 @@ validators = (spec, that) ->
     inheriter = _.partial init, validators, that, spec
     p = inheriter palantir
 
-    that.extend({
-    })
     __ = p.gettext.gettext
 
     parse_validators = (field) ->
