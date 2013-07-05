@@ -585,11 +585,43 @@ cache = singleton((spec) ->
 validators = (spec, that) ->
     that = that ? {}
     _helpers = helpers spec
-    managed = []
+
+    # The fields managed by this code
+    managed = {}
+    # The submit handlers
+    handlers = {}
+    # Errors display methods
+    display_methods = []
 
     validators_db = (singleton ->
         _that = {}
-        _validators = {}
+        _validators = {
+            length: (object, kwargs, args...) ->
+                kwargs.min = kwargs.min ? (args[0] ? 0)
+                kwargs.max = kwargs.max ? (args[1] ? Number.MAX_VALUE)
+                errors = []
+
+                length = $.trim(object.value).length
+                if length < kwargs.min
+                    errors.push(__("The input of length #{ length } you entered"+\
+                        " is too short. The minimum length is #{ kwargs.min }"))
+                if length > kwargs.max
+                    errors.push(__("The input of length #{ length } you entered"+\
+                        " is too long. The maximum length is #{ kwargs.max }"))
+                return errors
+
+            email: (object, kwargs, args...) ->
+                regex = kwargs.regex if kwargs.regex? else \
+                    /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$/
+                if not $.trim(object.value).match regex
+                    return [__('The email you entered is incorrect')]
+                return null
+
+            required: (object) ->
+                if $.trim(object.value).length == 0
+                    return [__('This field is obligatory')]
+                return null
+        }
 
         _that.apply = (validator, params) ->
             if _validators[validator] == undefined
@@ -610,27 +642,60 @@ validators = (spec, that) ->
 
         for form in where.find('.form')
             form = $(form)
-            form.attr 'data-validation_id', _helpers.random_string()
-            managed.push form
+            if not form.attr('data-validation_id')?
+                form.attr 'data-validation_id', _helpers.random_string()
+            fields = {}
 
-            form.on 'submit', (e) ->
-                console.log e
-            form.on 'click', "[data-submit='true']", (e) ->
-                console.log e
+            for field in form.find('[data-validators]')
+                $(field).attr 'data-validation_id', _helpers.random_string()
+                validators = []
+
+                for validator in parse_validators(field)
+                    validators.push validator
+
+                fields[$(field).attr('data-validation_id')] = validators
+            
+            for handler in form.find("[data-submit='true']")
+                handler = $(handler)
+                if not handler.attr('data-validation_id')?
+                    handler.attr 'data-validation_id', _helpers.random_string()
+
+                handlers[handler.attr('data-validation_id')] = \
+                    form.attr('data-validation_id')
+
+            managed[form.attr('data-validation_id')] = fields
+
+            form.on 'click', "[data-submit='true']", submit_handler
+
+    submit_handler = (e) ->
+        id = handlers[$(e.target).attr('data-validation_id')]
+        if not id? then return
+
+        errors = test managed[id]
+        if errors.length > 0
+            e.preventDefault()
+            for method in display_methods
+                method errors
 
     that.init = that.discover
 
     that.extend = (to_extend) ->
         validators_db.extend to_extend
 
+    that.extend_display_methods = (method) ->
+        display_methods.push method
+
     that.test = ->
         errors = {}
-        for form in managed
-            errors[form.attr('data-validation_id')] = test form
+        for id,fields of managed
+            errors[id] = test fields
         return errors
 
     inheriter = _.partial init, validators, that, spec
     p = inheriter palantir
+
+    that.extend({
+    })
     __ = p.gettext.gettext
 
     parse_validators = (field) ->
@@ -657,50 +722,21 @@ validators = (spec, that) ->
                         ret_params.push(param[0])
 
             parsed.push [name, ret_params]
-            
 
         return parsed
 
-    test = (where) ->
+    test = (fields) ->
         errors = []
-        for field in where.find("[data-validators]")
-            for validator in parse_validators(field)
+        for id,validators of fields
+            for validator in validators
                 err = validators_db.apply validator[0], validator[1]
                 if err? and err.length > 0
                     errors.push {
-                        field: field
+                        field: id
                         errors: err
                     }
 
         return errors
-
-    that.extend({
-        length: (object, kwargs, args...) ->
-            kwargs.min = kwargs.min ? (args[0] ? 0)
-            kwargs.max = kwargs.max ? (args[1] ? Number.MAX_VALUE)
-            errors = []
-
-            length = $.trim(object.value).length
-            if length < kwargs.min
-                errors.push(__("The input of length #{ length } you entered"+\
-                    " is too short. The minimum length is #{ kwargs.min }"))
-            if length > kwargs.max
-                errors.push(__("The input of length #{ length } you entered"+\
-                    " is too long. The maximum length is #{ kwargs.max }"))
-            return errors
-
-        email: (object, kwargs, args...) ->
-            regex = kwargs.regex if kwargs.regex? else \
-                /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$/
-            if not $.trim(object.value).match regex
-                return [__('The email you entered is incorrect')]
-            return null
-
-        required: (object) ->
-            if $.trim(object.value).length == 0
-                return [__('This field is obligatory')]
-            return null
-    })
 
     return that
         

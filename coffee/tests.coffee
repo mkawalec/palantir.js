@@ -240,4 +240,15 @@ asyncTest 'Validator test', ->
         start()
         ok p.validators?
         p.validators.init()
-        console.log p.validators.test()
+
+        for key,value of p.validators.test()
+            ok value[0].errors[0] == 'This field is obligatory'
+
+        $('body').append "<div class='form'>"+\
+            "<button class='btn' data-submit='true' id='form_submitter'>Zapisz</button>"+\
+            "<input type='text' data-validators='required' id='req_field'/></div>"
+        p.validators.init()
+        ok _.keys(p.validators.test()).length == 2
+
+        $('#req_field')[0].value = 'dasdasdsa'
+        $('#form_submitter')[0].click()
