@@ -161,7 +161,8 @@ gettext = singleton((spec, that) ->
     lang = if lang.length == 0 then 'en' else lang
     default_lang = spec.default_lang ? 'en'
 
-    translations_url = spec.translations_url ? "#{ spec.base_url }translations/"
+    static_prefix = spec.static_prefix ? ''
+    translations_url = spec.translations_url ? "#{ spec.base_url+static_prefix }translations/"
     if translations_url.indexOf('://') == -1
         translations_url = spec.base_url + translations_url
 
@@ -299,6 +300,11 @@ template = (spec, that) ->
 
     _libs = {}
     _.extend _libs, helpers(spec)
+
+    static_prefix = spec.static_prefix ? ''
+    template_url = spec.template_url ? "#{ spec.base_url+static_prefix }templates/"
+    if template_url.indexOf('://') == -1
+        template_url = spec.base_url + template_url
 
     translate = (_, text) ->
         return __ $.trim text
@@ -476,7 +482,7 @@ template = (spec, that) ->
 
     that.open = (name, where, object, action='add', string_id) ->
         _libs.open {
-            url: spec.base_url + "templates/#{ name }"
+            url: template_url + name 
             success: (data) ->
                 data = that.parse data
                 where.html data
@@ -493,7 +499,7 @@ template = (spec, that) ->
     that.extend_renderers = (extensions) ->
         tag_renderers.extend extensions
 
-    tag_renderers.extend spec.tag_renderers
+    that.extend_renderers spec.tag_renderers
     
     inheriter = _.partial init, template, that, spec
     _.extend _libs, inheriter(palantir)
@@ -1128,15 +1134,12 @@ palantir = singleton((spec) ->
         that.open {
             url: base_url + "templates/#{ name }"
             success: (data) ->
-                data = _template.parse data
+                data = that.template.parse data
                 where.html data
 
-                _template.bind where
+                that.template.bind where
             palantir_timeout: tout
         }
-
-    that.extend_renderers = (extensions) ->
-        _template.extend_renderers(extensions)
 
     that.extend_code_messages = (data) ->
         if not that.notifier?
@@ -1193,9 +1196,9 @@ palantir = singleton((spec) ->
     ), 0)
 
     inheriter = _.partial init, palantir, that, spec
-    _template = inheriter(template)
     _cache = inheriter(cache)
 
+    that.templates = inheriter template
     that.notifier = inheriter notifier
     that.helpers = inheriter helpers
     that.gettext = inheriter gettext
