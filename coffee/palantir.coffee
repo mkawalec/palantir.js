@@ -366,10 +366,9 @@ template = (spec, that) ->
                 that.set_details element, null, actions
             )(element)
 
-        for element in $(where).find('[data-wysiwyg]')
-            if $(element).attr('data-wysiwyg') == 'true'
-                editor = new nicEditor()
-                editor.panelInstance $(element).attr('id')
+        for element in $(where).find("[data-wysiwyg='true']")
+            editor = new nicEditor()
+            editor.panelInstance $(element).attr('id')
 
     that.set_details = (element, caching=true, actions) ->
         _libs.open {
