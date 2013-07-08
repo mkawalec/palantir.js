@@ -481,7 +481,6 @@ template = (spec, that) ->
         }
 
     that.open = (name, where, object, action='add', string_id) ->
-        console.log template_url
         _libs.open {
             url: template_url + name 
             success: (data) ->
