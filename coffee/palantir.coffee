@@ -384,17 +384,17 @@ template = (spec, that) ->
 
                 data_tag = $(element).attr('data-tag')
                 if data_tag?
-                    if tag_renderers[data_tag]?
-                        tag_renderers[data_tag] element, data
-                    else tag_renderers.div element, data
+                    if tag_renderers.get(data_tag)?
+                        tag_renderers.get(data_tag) element, data
+                    else tag_renderers.get('div') element, data
                 else
                     if not element.tagName?
-                        tag_renderers.div element, data, contents
+                        tag_renderers.get('div') element, data, contents
                     else
                         tag_name = element.tagName.lower()
-                        if tag_renderers[tag_name]?
-                            tag_renderers[tag_name] element, data
-                        else tag_renderers.div element, data
+                        if tag_renderers.get(tag_name)?
+                            tag_renderers.get(tag_name) element, data
+                        else tag_renderers.get('div') element, data
 
                 if actions? and actions.add
                     _libs.open {
