@@ -363,7 +363,10 @@ template = (spec, that) ->
         for element in where.find('[data-click]')
             $(element).on 'click', (e) ->
                 e.preventDefault()
-                _libs.goto $(@).attr('data-click'), @
+                _libs.goto $(@).attr('data-click'), {
+                    silent: true
+                    string_id: string_id
+                }
 
         for element in $(where).find('[data-source]')
             ((element) ->
@@ -558,11 +561,18 @@ cache = singleton((spec) ->
         return to_join.join ';'
 
     that.delall = (url) ->
+        model_url = url
+        if url[url.length-1] != '/'
+            index = url.split('').reverse().join('').indexOf('/')
+            model_url = url.slice(0, url.length-index)+'?'
+
         searched = "url:#{ url }"
+        searched_model = "url:#{ model_url }"
         for key,value of _cache
-            if key.indexOf(searched) != -1
-                dirty = true
-                delete _cache[key]
+            if key.indexOf(searched) != -1 or \
+                key.indexOf(searched_model) != -1
+                    dirty = true
+                    delete _cache[key]
 
     prune_old = (percent=20) ->
         now = (new Date()).getTime()
@@ -1147,6 +1157,13 @@ palantir = singleton((spec) ->
             fn.apply(null, arguments)
 
     that.goto = (route, params...) ->
+        console.log routes
+        if params.length > 0 and params[0].silent == true
+            res = _.where(routes, {route: route})
+            for matching in res
+                matching.fn params[0]
+            return
+
         route = '#'+that.helpers.add_params route, params
         window.location.hash = route
 
