@@ -1,0 +1,8 @@
+{ "name": "palantir"
+, "version": "0.0.1"
+, "dependencies": {
+    "uglify-js": "2.3.6" ,
+    "connect": "1.9.0",
+    "docco": "0.6.2"
+    }
+}
