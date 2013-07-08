@@ -404,52 +404,63 @@ template = (spec, that) ->
                     }
         }
 
-    tag_renderers = {
-        select: (element, data) ->
-            for el in data.data
-                $(element).append($("<option/>", {
-                    value: el.string_id
-                    text: el[$(element).attr('data-shown_property')]
-                }))
+    tag_renderers = (singleton ->
+        _that = {}
 
-        div: (element, data, contents) ->
-            for el in data.data
-                if el.string_id == contents
-                    $(element).html el[$(element).attr('data-binding')]
-                    break
+        _renderers = {
+            select: (element, data) ->
+                for el in data.data
+                    $(element).append($("<option/>", {
+                        value: el.string_id
+                        text: el[$(element).attr('data-shown_property')]
+                    }))
 
-        checklist: (element, data) ->
-            element = _helpers.clone(element)
+            div: (element, data, contents) ->
+                for el in data.data
+                    if el.string_id == contents
+                        $(element).html el[$(element).attr('data-binding')]
+                        break
 
-            $(element).on 'change', 'input', (e) ->
-                selected = []
-                for el in $(e.delegateTarget).\
-                    find("input[type='checkbox']:checked")
-                        selected.push(el.value)
+            checklist: (element, data) ->
+                element = _helpers.clone(element)
 
-                $(e.delegateTarget).\
-                    attr('data-value', JSON.stringify(selected))
+                $(element).on 'change', 'input', (e) ->
+                    selected = []
+                    for el in $(e.delegateTarget).\
+                        find("input[type='checkbox']:checked")
+                            selected.push(el.value)
 
-            # For all elements
-            for el in data.data
-                id = _libs.random_string()
+                    $(e.delegateTarget).\
+                        attr('data-value', JSON.stringify(selected))
 
-                checkbox_group = $('<div/>', {
-                    class: 'checkbox-group'
-                })
-                blah = checkbox_group.append($("<input/>", {
-                    type: 'checkbox'
-                    value: el.string_id
-                    id: id
-                }))
-                checkbox_group.append($('<label/>', {
-                    for: id
-                    text: el[$(element).attr('data-shown_property')]
-                }))
+                # For all elements
+                for el in data.data
+                    id = _libs.random_string()
 
-                element.append(checkbox_group)
-    }
-    _.extend tag_renderers, spec.tag_renderers
+                    checkbox_group = $('<div/>', {
+                        class: 'checkbox-group'
+                    })
+                    blah = checkbox_group.append($("<input/>", {
+                        type: 'checkbox'
+                        value: el.string_id
+                        id: id
+                    }))
+                    checkbox_group.append($('<label/>', {
+                        for: id
+                        text: el[$(element).attr('data-shown_property')]
+                    }))
+
+                    element.append(checkbox_group)
+        }
+
+        _that.get = (renderer) ->
+            return _renderers[renderer]
+
+        _that.extend = (to_extend) ->
+            _.extend _renderers, to_extend
+
+        return _that
+    )()
 
     fill = (where, string_id) ->
         _libs.open {
@@ -481,7 +492,9 @@ template = (spec, that) ->
         }
 
     that.extend_renderers = (extensions) ->
-        _.extend tag_renderes, spec.tag_renderers
+        tag_renderers.extend extensions
+
+    tag_renderers.extend spec.tag_renderers
     
     inheriter = _.partial init, template, that, spec
     _.extend _libs, inheriter(palantir)
