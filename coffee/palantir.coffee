@@ -481,6 +481,7 @@ template = (spec, that) ->
         }
 
     that.open = (name, where, object, action='add', string_id) ->
+        console.log template_url
         _libs.open {
             url: template_url + name 
             success: (data) ->
@@ -1016,11 +1017,6 @@ palantir = singleton((spec) ->
 
     routes = []
 
-    if spec.debug
-        tout = 0
-    else
-        tout = spec.timeout ? 3600*24*2
-
     # Magic generating the base url for the app
     base_url = spec.base_url ? (location.href.match /^.*\//)
     if Object.prototype.toString.call(base_url) == '[object Array]'
@@ -1131,15 +1127,7 @@ palantir = singleton((spec) ->
 
 
     that.template = (name, where, object={}) ->
-        that.open {
-            url: base_url + "templates/#{ name }"
-            success: (data) ->
-                data = that.template.parse data
-                where.html data
-
-                that.template.bind where
-            palantir_timeout: tout
-        }
+        that.templates.open name, where, object
 
     that.extend_code_messages = (data) ->
         if not that.notifier?
