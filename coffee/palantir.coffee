@@ -699,6 +699,7 @@ validators = (spec, that) ->
             managed[form.attr('data-validation_id')] = fields
 
             form.on 'click', "[data-submit='true']", submit_handler
+            form.on 'submit', submit_event_handler
 
     submit_handler = (e) ->
         id = handlers[$(e.target).attr('data-validation_id')]
@@ -710,6 +711,10 @@ validators = (spec, that) ->
             e.stopPropagation()
             for name,method of display_methods
                 method errors
+
+    submit_event_handler = (e) ->
+        e.preventDefault()
+        submit_handler e
 
     that.init = that.discover
 
@@ -761,12 +766,23 @@ validators = (spec, that) ->
         errors = []
         for id,validators of fields
             for validator in validators
+                # validator[0] is a validator currently tested
+                # and validator[1] is a jQuery DOM object on which
+                # the validator is ran
+                #
+                # TODO: Clean up this mess
                 err = validators_db.apply validator[0], validator[1]
                 if err? and err.length > 0
+                    console.log validator
+                    $(validator[1][0]).addClass 'validation-error'
                     errors.push {
                         field: id
                         errors: err
                     }
+                else
+                    console.log validator[1]
+                    $(validator[1][0]).removeClass 'validation-error'
+
 
         return errors
 
