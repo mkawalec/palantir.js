@@ -773,16 +773,13 @@ validators = (spec, that) ->
                 # TODO: Clean up this mess
                 err = validators_db.apply validator[0], validator[1]
                 if err? and err.length > 0
-                    console.log validator
                     $(validator[1][0]).addClass 'validation-error'
                     errors.push {
                         field: id
                         errors: err
                     }
                 else
-                    console.log validator[1]
                     $(validator[1][0]).removeClass 'validation-error'
-
 
         return errors
 
