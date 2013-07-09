@@ -718,7 +718,7 @@ validators = (spec, that) ->
         validators_db.extend to_extend
 
     that.extend_display_methods = (methods) ->
-        _.extend display_methods methods
+        _.extend display_methods, methods
 
     that.test = ->
         errors = {}
