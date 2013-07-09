@@ -380,7 +380,17 @@ template = (spec, that) ->
 
         for element in $(where).find("[data-wysiwyg='true']")
             editor = new nicEditor()
-            editor.panelInstance $(element).attr('id')
+            element = $(element)
+
+            editor.panelInstance element.attr('id')
+
+            # Make the validators observe the correct field
+            inner_area = (nicEditors.findEditor element.attr('id')).\
+                getElm()
+            $(inner_area).attr('data-validators', 
+                element.attr('data-validators'))
+            element.attr('data-validators', '')
+           
 
     that.set_details = (element, caching=true, actions) ->
         _libs.open {
@@ -637,7 +647,9 @@ validators = (spec, that) ->
                 kwargs.max = kwargs.max ? (args[1] ? Number.MAX_VALUE)
                 errors = []
 
-                length = $.trim(object.value).length
+                value = if object.value? then object.value else $(object).text()
+                length = $.trim(value).length
+
                 if length < kwargs.min
                     errors.push(__("The input of length #{ length } you entered"+\
                         " is too short. The minimum length is #{ kwargs.min }"))
@@ -654,7 +666,8 @@ validators = (spec, that) ->
                 return null
 
             required: (object) ->
-                if $.trim(object.value).length == 0
+                value = if object.value? then object.value else $(object).text()
+                if $.trim(value).length == 0
                     return [__('This field is obligatory')]
                 return null
         }
@@ -699,7 +712,7 @@ validators = (spec, that) ->
                 handlers[handler.attr('data-validation_id')] = \
                     form.attr('data-validation_id')
 
-            form.on 'keyup', 'input,textarea', field_changed
+            form.on 'keyup', 'input,textarea,.nicEdit-main', field_changed
 
             managed[form.attr('data-validation_id')] = fields
 
@@ -797,13 +810,13 @@ validators = (spec, that) ->
             # TODO: Clean up this mess with [1][0] etc.
             err = validators_db.apply validator[0], validator[1]
             if err? and err.length > 0
-                if current_id? and current_id == id
+                if not current_id? or current_id == id
                     $(validator[1][0]).addClass 'validation-error'
                 errors.push {
                     field: id
                     errors: err
                 }
-            else if current_id? and current_id == id
+            else if not current_id? or current_id == id
                 $(validator[1][0]).removeClass 'validation-error'
 
         return errors
