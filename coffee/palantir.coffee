@@ -363,7 +363,10 @@ template = (spec, that) ->
         for element in where.find('[data-click]')
             $(element).on 'click', (e) ->
                 _helpers.delay ->
-                    _libs.goto $(@).attr('data-click'), {
+                    if $(e.target).attr('data-prevent_default') == 'true'
+                        return
+
+                    _libs.goto $(e.target).attr('data-click'), {
                         silent: true
                         string_id: string_id
                     }
@@ -696,21 +699,36 @@ validators = (spec, that) ->
                 handlers[handler.attr('data-validation_id')] = \
                     form.attr('data-validation_id')
 
+            form.on 'keyup', 'input,textarea', field_changed
+
             managed[form.attr('data-validation_id')] = fields
 
             form.on 'click', "[data-submit='true']", submit_handler
             form.on 'submit', submit_event_handler
+
+    field_changed = (e) ->
+        # Handles rechecking the field if its contents changed
+        validation_id = $(e.target).attr('data-validation_id')
+        for id,fields of managed
+            if fields[validation_id] != undefined
+                errors = test managed[id]
+                return display_errors errors, validation_id
+
+    display_errors = (errors, current_id) ->
+        for name,method of display_methods
+            method errors, current_id
 
     submit_handler = (e) ->
         id = handlers[$(e.target).attr('data-validation_id')]
         if not id? then return
 
         errors = test managed[id]
+        console.log errors
         if errors.length > 0
-            e.preventDefault()
-            e.stopPropagation()
-            for name,method of display_methods
-                method errors
+            $(e.target).attr('data-prevent_default', 'true')
+            display_errors errors
+        else
+            $(e.target).attr('data-prevent_default', 'false')
 
     submit_event_handler = (e) ->
         e.preventDefault()
@@ -722,7 +740,8 @@ validators = (spec, that) ->
         validators_db.extend to_extend
 
     that.extend_display_methods = (methods) ->
-        _.extend display_methods, methods
+        _.extend(display_methods, 
+            _.omit(methods, _.keys(display_methods)))
 
     that.test = ->
         errors = {}
@@ -765,21 +784,27 @@ validators = (spec, that) ->
     test = (fields) ->
         errors = []
         for id,validators of fields
-            for validator in validators
-                # validator[0] is a validator currently tested
-                # and validator[1] is a jQuery DOM object on which
-                # the validator is ran
-                #
-                # TODO: Clean up this mess
-                err = validators_db.apply validator[0], validator[1]
-                if err? and err.length > 0
-                    $(validator[1][0]).addClass 'validation-error'
-                    errors.push {
-                        field: id
-                        errors: err
-                    }
-                else
-                    $(validator[1][0]).removeClass 'validation-error'
+            errors.push.apply(errors, test_field(id, validators))
+        return errors
+
+    test_field = (id, validators) ->           
+        errors = []
+
+        for validator in validators
+            # validator[0] is a validator currently tested
+            # and validator[1] is a jQuery DOM object on which
+            # the validator is ran
+            #
+            # TODO: Clean up this mess with [1][0] etc.
+            err = validators_db.apply validator[0], validator[1]
+            if err? and err.length > 0
+                $(validator[1][0]).addClass 'validation-error'
+                errors.push {
+                    field: id
+                    errors: err
+                }
+            else
+                $(validator[1][0]).removeClass 'validation-error'
 
         return errors
 
