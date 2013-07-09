@@ -362,11 +362,11 @@ template = (spec, that) ->
     that.bind = (where, actions_object, string_id) ->
         for element in where.find('[data-click]')
             $(element).on 'click', (e) ->
-                e.preventDefault()
-                _libs.goto $(@).attr('data-click'), {
-                    silent: true
-                    string_id: string_id
-                }
+                _helpers.delay ->
+                    _libs.goto $(@).attr('data-click'), {
+                        silent: true
+                        string_id: string_id
+                    }
 
         for element in $(where).find('[data-source]')
             ((element) ->
@@ -496,7 +496,8 @@ template = (spec, that) ->
                 else
                     that.bind where, object
 
-            tout: 3600
+                _validators.discover where
+            tout: 3600*48
         }
 
     that.extend_renderers = (extensions) ->
@@ -505,9 +506,10 @@ template = (spec, that) ->
     that.extend_renderers spec.tag_renderers
     
     inheriter = _.partial init, template, that, spec
-    _.extend _libs, inheriter(palantir)
-    _helpers = inheriter(helpers)
-    _notifier = inheriter(notifier)
+    _.extend _libs, inheriter palantir
+    _helpers = inheriter helpers
+    _notifier = inheriter notifier 
+    _validators = inheriter validators
     __ = inheriter(gettext).gettext
 
     return that
@@ -621,7 +623,7 @@ validators = (spec, that) ->
     managed = {}
     # The submit handlers
     handlers = {}
-    # Errors display methods
+    # Validations error display methods
     display_methods = []
 
     validators_db = (singleton ->
@@ -703,8 +705,10 @@ validators = (spec, that) ->
         if not id? then return
 
         errors = test managed[id]
+        console.log errors
         if errors.length > 0
             e.preventDefault()
+            e.stopPropagation()
             for method in display_methods
                 method errors
 
@@ -1157,7 +1161,6 @@ palantir = singleton((spec) ->
             fn.apply(null, arguments)
 
     that.goto = (route, params...) ->
-        console.log routes
         if params.length > 0 and params[0].silent == true
             res = _.where(routes, {route: route})
             for matching in res
