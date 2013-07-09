@@ -711,7 +711,7 @@ validators = (spec, that) ->
         validation_id = $(e.target).attr('data-validation_id')
         for id,fields of managed
             if fields[validation_id] != undefined
-                errors = test managed[id]
+                errors = test managed[id], validation_id
                 return display_errors errors, validation_id
 
     display_errors = (errors, current_id) ->
@@ -757,6 +757,7 @@ validators = (spec, that) ->
     parse_validators = (field) ->
         to_parse = $(field).attr('data-validators')
         parsed = []
+        console.log to_parse
 
         for validator in to_parse.split(';')
             split = validator.split('(')
@@ -781,13 +782,13 @@ validators = (spec, that) ->
 
         return parsed
 
-    test = (fields) ->
+    test = (fields, current_id) ->
         errors = []
         for id,validators of fields
-            errors.push.apply(errors, test_field(id, validators))
+            errors.push.apply(errors, test_field(id, validators, current_id))
         return errors
 
-    test_field = (id, validators) ->           
+    test_field = (id, validators, current_id) ->           
         errors = []
 
         for validator in validators
@@ -798,12 +799,13 @@ validators = (spec, that) ->
             # TODO: Clean up this mess with [1][0] etc.
             err = validators_db.apply validator[0], validator[1]
             if err? and err.length > 0
-                $(validator[1][0]).addClass 'validation-error'
+                if current_id? and current_id == id
+                    $(validator[1][0]).addClass 'validation-error'
                 errors.push {
                     field: id
                     errors: err
                 }
-            else
+            else if current_id? and current_id == id
                 $(validator[1][0]).removeClass 'validation-error'
 
         return errors
