@@ -723,7 +723,6 @@ validators = (spec, that) ->
         if not id? then return
 
         errors = test managed[id]
-        console.log errors
         if errors.length > 0
             $(e.target).attr('data-prevent_default', 'true')
             display_errors errors
@@ -757,7 +756,6 @@ validators = (spec, that) ->
     parse_validators = (field) ->
         to_parse = $(field).attr('data-validators')
         parsed = []
-        console.log to_parse
 
         for validator in to_parse.split(';')
             split = validator.split('(')
