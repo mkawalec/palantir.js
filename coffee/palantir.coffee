@@ -624,7 +624,7 @@ validators = (spec, that) ->
     # The submit handlers
     handlers = {}
     # Validations error display methods
-    display_methods = []
+    display_methods = {}
 
     validators_db = (singleton ->
         _that = {}
@@ -709,7 +709,7 @@ validators = (spec, that) ->
         if errors.length > 0
             e.preventDefault()
             e.stopPropagation()
-            for method in display_methods
+            for name,method of display_methods
                 method errors
 
     that.init = that.discover
@@ -717,8 +717,8 @@ validators = (spec, that) ->
     that.extend = (to_extend) ->
         validators_db.extend to_extend
 
-    that.extend_display_methods = (method) ->
-        display_methods.push method
+    that.extend_display_methods = (methods) ->
+        _.extend display_methods methods
 
     that.test = ->
         errors = {}
