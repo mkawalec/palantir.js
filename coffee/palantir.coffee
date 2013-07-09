@@ -518,7 +518,7 @@ cache = singleton((spec) ->
     that = {}
     _helpers = helpers(spec)
 
-    timeout = spec.timeout ? 60
+    timeout = spec.timeout ? 1800
 
     # A cache object structure:
     # obj = {
@@ -705,7 +705,6 @@ validators = (spec, that) ->
         if not id? then return
 
         errors = test managed[id]
-        console.log errors
         if errors.length > 0
             e.preventDefault()
             e.stopPropagation()
