@@ -820,6 +820,9 @@ validators = (spec, that) ->
 
     parse_validators = (field, attr='data-validators') ->
         to_parse = $(field).attr(attr)
+        if not to_parse?
+            return []
+
         parsed = []
 
         for validator in to_parse.split(';')
