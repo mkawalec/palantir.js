@@ -397,6 +397,7 @@ template = (spec, that) ->
             $(inner_area).attr('data-validators', 
                 element.attr('data-validators'))
             element.attr('data-validators', '')
+            $(inner_area).css 'min-height', '320px'
            
 
     that.set_details = (element, caching=true, actions) ->
