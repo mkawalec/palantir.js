@@ -700,6 +700,16 @@ validators = (spec, that) ->
                 if $.trim(value).length == 0
                     return [__('This field is obligatory')]
                 return null
+
+            decimal: (object) ->
+                value = $.trim(object.value).replace ',', '.'
+                value = value.replace ' ', ''
+
+                decimal_regex = /^[0-9]+(\.[0-9]+)?$/
+                if decimal_regex.test(value) == false
+                    return [__('This doesn\'t look like a number')]
+                object.value = value
+                return null
         }
 
         _that.apply = (validator, params) ->
@@ -726,13 +736,21 @@ validators = (spec, that) ->
             fields = {}
 
             for field in form.find('[data-validators]')
-                $(field).attr 'data-validation_id', _helpers.random_string()
+                field = $(field)
+                field.attr 'data-validation_id', _helpers.random_string()
                 validators = []
+                parsers = []
 
-                for validator in parse_validators(field)
+                for validator in parse_validators(field[0])
                     validators.push validator
+                for parser in parse_validators(field[0], 'data-parsers')
+                    parsers.push parser
 
-                fields[$(field).attr('data-validation_id')] = validators
+                bound = {
+                    validators: validators
+                    parsers: parsers
+                }
+                fields[field.attr('data-validation_id')] = bound
             
             for handler in form.find("[data-submit='true']")
                 handler = $(handler)
@@ -800,8 +818,8 @@ validators = (spec, that) ->
 
     __ = p.gettext.gettext
 
-    parse_validators = (field) ->
-        to_parse = $(field).attr('data-validators')
+    parse_validators = (field, attr='data-validators') ->
+        to_parse = $(field).attr(attr)
         parsed = []
 
         for validator in to_parse.split(';')
@@ -829,14 +847,19 @@ validators = (spec, that) ->
 
     test = (fields, current_id) ->
         errors = []
-        for id,validators of fields
-            errors.push.apply(errors, test_field(id, validators, current_id))
+        for id,methods of fields
+            errors.push.apply(errors, test_field(id, methods, current_id))
         return errors
 
-    test_field = (id, validators, current_id) ->           
+    test_field = (id, methods, current_id) ->           
         errors = []
 
-        for validator in validators
+        # The parsers are applied before validators.
+        # We are not interested in their output
+        for parser in methods.parsers
+            validators_db.apply parser[0], parser[1]
+
+        for validator in methods.validators
             # validator[0] is a validator currently tested
             # and validator[1] is a jQuery DOM object on which
             # the validator is ran
