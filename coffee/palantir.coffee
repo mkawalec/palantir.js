@@ -362,14 +362,21 @@ template = (spec, that) ->
     that.bind = (where, actions_object, string_id) ->
         for element in where.find('[data-click]')
             $(element).on 'click', (e) ->
+                target = $(e.target)
                 _helpers.delay ->
-                    if $(e.target).attr('data-prevent_default') == 'true'
+                    if target.attr('data-prevent_default') == 'true'
                         return
 
-                    _libs.goto $(e.target).attr('data-click'), {
-                        silent: true
-                        string_id: string_id
-                    }
+                    data = {}
+                    if target.attr('data-silent') != 'false'
+                        data.silent = true
+                    if string_id?
+                        data.string_id = string_id
+
+                    if data.silent != true
+                        _validators.hide()
+
+                    _libs.goto target.attr('data-click'), data
 
         for element in $(where).find('[data-source]')
             ((element) ->
@@ -647,8 +654,13 @@ validators = (spec, that) ->
         _that.all = ->
             return _methods
 
-        _that.extend = (to_extend) ->
-            _.extend(_methods, _.omit(to_extend, _.keys(_methods)))
+        _that.extend = (to_extend, overwrite=false) ->
+            if not overwrite 
+                extend_with = _.omit(to_extend, _.keys(_methods)) 
+            else 
+                extend_with = to_extend
+
+            _.extend(_methods, extend_with)
 
         return _that
     )()
@@ -664,12 +676,15 @@ validators = (spec, that) ->
                 value = if object.value? then object.value else $(object).text()
                 length = $.trim(value).length
 
+                # The following is oddly formatted thanks to babel being stupid
                 if length < kwargs.min
-                    errors.push(__("The input of length #{ length } you entered"+\
-                        " is too short. The minimum length is #{ kwargs.min }"))
+                    errors.push(__("The input of length ") + length + \
+                        __(' you entered is too short. The minimum length is ')+ \
+                        kwargs.min )
                 if length > kwargs.max
-                    errors.push(__("The input of length #{ length } you entered"+\
-                        " is too long. The maximum length is #{ kwargs.max }"))
+                    errors.push(__("The input of length ") + length + \
+                        __(' you entered is too long. The maximum length is ')+ \
+                        kwargs.min )
                 return errors
 
             email: (object, kwargs, args...) ->
@@ -743,7 +758,7 @@ validators = (spec, that) ->
 
     display_errors = (errors, current_id) ->
         for name,method of display_methods.all()
-            method errors, current_id
+            method.create errors, current_id
 
     submit_handler = (e) ->
         id = handlers[$(e.target).attr('data-validation_id')]
@@ -765,14 +780,19 @@ validators = (spec, that) ->
     that.extend = (to_extend) ->
         validators_db.extend to_extend
 
-    that.extend_display_methods = (methods) ->
-        display_methods.extend methods
+    that.extend_display_methods = (methods, overwrite) ->
+        display_methods.extend methods, overwrite
 
     that.test = ->
         errors = {}
         for id,fields of managed
             errors[id] = test fields
         return errors
+
+    that.hide = ->
+        # Enforce hiding of all validators
+        for name,method of display_methods.all()
+            method.hide()
 
     inheriter = _.partial init, validators, that, spec
     p = inheriter palantir
