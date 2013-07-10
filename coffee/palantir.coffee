@@ -708,7 +708,9 @@ validators = (spec, that) ->
                 decimal_regex = /^[0-9]+(\.[0-9]+)?$/
                 if decimal_regex.test(value) == false
                     return [__('This doesn\'t look like a number')]
-                object.value = value
+
+                if object.value != value
+                    object.value = value
                 return null
         }
 
@@ -746,11 +748,11 @@ validators = (spec, that) ->
                 for parser in parse_validators(field[0], 'data-parsers')
                     parsers.push parser
 
-                bound = {
+                methods = {
                     validators: validators
                     parsers: parsers
                 }
-                fields[field.attr('data-validation_id')] = bound
+                fields[field.attr('data-validation_id')] = methods
             
             for handler in form.find("[data-submit='true']")
                 handler = $(handler)
@@ -844,7 +846,7 @@ validators = (spec, that) ->
                     else
                         ret_params.push(param[0])
 
-            parsed.push [name, ret_params]
+            parsed.push {method: name, params: ret_params}
 
         return parsed
 
@@ -860,24 +862,19 @@ validators = (spec, that) ->
         # The parsers are applied before validators.
         # We are not interested in their output
         for parser in methods.parsers
-            validators_db.apply parser[0], parser[1]
+            validators_db.apply parser.method, parser.params
 
         for validator in methods.validators
-            # validator[0] is a validator currently tested
-            # and validator[1] is a jQuery DOM object on which
-            # the validator is ran
-            #
-            # TODO: Clean up this mess with [1][0] etc.
-            err = validators_db.apply validator[0], validator[1]
+            err = validators_db.apply validator.method, validator.params
             if err? and err.length > 0
                 if not current_id? or current_id == id
-                    $(validator[1][0]).addClass 'validation-error'
+                    $(validator.params[0]).addClass 'validation-error'
                 errors.push {
                     field: id
                     errors: err
                 }
             else if not current_id? or current_id == id
-                $(validator[1][0]).removeClass 'validation-error'
+                $(validator.params[0]).removeClass 'validation-error'
 
         return errors
 
