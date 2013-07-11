@@ -587,10 +587,10 @@ cache = singleton((spec) ->
         model_url = url
         if url[url.length-1] != '/'
             index = url.split('').reverse().join('').indexOf('/')
-            model_url = url.slice(0, url.length-index)+'?'
+            model_url = url.slice(0, url.length-index)
 
         searched = "url:#{ url }"
-        searched_model = "url:#{ model_url }"
+        searched_model = "url:#{ model_url };"
         for key,value of _cache
             if key.indexOf(searched) != -1 or \
                 key.indexOf(searched_model) != -1
@@ -880,9 +880,7 @@ validators = (spec, that) ->
 
     return that
         
-model = (spec, that) ->
-    that = that ? {}
-
+model = (spec={}, that={}) ->
     autosubmit = spec.autosubmit ? false
 
     last_params = null
@@ -925,7 +923,7 @@ model = (spec, that) ->
                     else
                         ret = makeobj data.data
 
-                    managed.concat(ret)
+                    managed.push.apply(managed, ret)
 
                     other_params = {}
                     for key,value of data
@@ -1014,11 +1012,11 @@ model = (spec, that) ->
 
         return model spec
 
-    makeobj = (dict, dirty=false) ->
+    makeobj = (raw_object, dirty=false) ->
         ret = {}
         deleted = false
 
-        for prop, value of dict
+        for prop,value of raw_object
             if typeof value == 'object'
                 ret[prop] = value
                 continue
@@ -1027,9 +1025,6 @@ model = (spec, that) ->
                 set_value = value
                 Object.defineProperty(ret, prop, {
                     set: (new_value) ->
-                        if typeof new_value != data_def[prop] and
-                            (new_value != null and new_value != undefined)
-                                throw new TypeError()
                         check_deletion(deleted)
 
                         dirty = true
@@ -1050,10 +1045,11 @@ model = (spec, that) ->
                 return
             check_deletion(deleted)
 
-            that.keys ->
+            that.keys (keys) ->
                 data = {}
-                for key, value of data_def
+                for key in keys
                     data[key] = ret[key]
+                data = {data: JSON.stringify data}
 
                 req_type = if ret.string_id? then 'PUT' else 'POST'
                 url = spec.url
@@ -1118,10 +1114,9 @@ model = (spec, that) ->
 
     return that
 
-palantir = singleton((spec) ->
+palantir = singleton((spec={}) ->
     that = {}
-    if not spec?
-        spec = {}
+
     if spec[0]?
         spec = spec[0]
 
