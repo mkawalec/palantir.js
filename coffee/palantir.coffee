@@ -1040,7 +1040,7 @@ model = (spec={}, that={}) ->
             set: (value) -> dirty = value
         })
 
-        ret['__submit'] = (callback, force=false) ->
+        ret['__submit'] = (callback=( ->), force=false) ->
             if ret.__dirty == false and not force
                 return
             check_deletion(deleted)
@@ -1070,7 +1070,7 @@ model = (spec={}, that={}) ->
                     error: callback
                 }
 
-        ret['__delete'] = (callback) ->
+        ret['__delete'] = (callback= -> ) ->
             check_deletion(deleted)
 
             p.open {
