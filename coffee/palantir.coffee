@@ -518,7 +518,7 @@ template = (spec, that) ->
                     that.bind where, object
 
                 _validators.discover where
-            tout: 3600*48
+            palantir_timeout: 3600*48
         }
 
     that.extend_renderers = (extensions) ->
