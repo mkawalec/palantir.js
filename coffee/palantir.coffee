@@ -306,6 +306,9 @@ template = (spec, that) ->
     if template_url.indexOf('://') == -1
         template_url = spec.base_url + template_url
 
+    if spec.model_url.indexOf('://') == -1
+        spec.model_url = spec.base_url + spec.model_url
+
     translate = (_, text) ->
         return __ $.trim text
 
@@ -496,17 +499,17 @@ template = (spec, that) ->
     )()
 
     fill = (where, string_id) ->
-        _libs.open {
-            url: spec.url+string_id
-            success: (data) ->
-                for column, details of data.data
-                    col = $("[data-binding='#{ column }']")
+        posts.get ((data) ->
+            posts.keys (keys) ->
+                console.log data, keys
+                for key in keys
+                    col = $("[data-binding='#{ key }']")
                     if col.attr('data-wysiwyg') != 'true'
-                        col.val(details)
+                        col.val data[key]
                     else
-                        editor = nicEditors.findEditor(col.attr('id'))
-                        editor.setContent(details)
-        }
+                        editor = nicEditors.findEditor col.attr('id')
+                        editor.setContent data[key]
+        ), {id: string_id}
 
     that.open = (name, context, params={}) ->
         params.action = params.action ? 'add'
@@ -536,8 +539,11 @@ template = (spec, that) ->
     _.extend _libs, inheriter palantir
     _helpers = inheriter helpers
     _notifier = inheriter notifier 
+    _model = inheriter model
     _validators = inheriter validators
     __ = inheriter(gettext).gettext
+
+    posts = _model.init {url: spec.model_url}
 
     return that
 
@@ -1137,6 +1143,7 @@ palantir = singleton((spec={}) ->
     if base_url[base_url.length-1] != '/'
         base_url += '/'
     spec.base_url = base_url
+
 
     _that = {}
     _.extend _that, helpers(spec)
