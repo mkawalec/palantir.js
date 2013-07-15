@@ -1282,6 +1282,14 @@ palantir = singleton((spec={}) ->
         () ->
             fn.apply(null, arguments)
 
+    that.route_for = (fn) ->
+        matching = _.filter routes, (item) ->
+            if item.fn == fn then true else false
+
+        if matching.length > 0
+            return matching[0].route
+        return undefined
+
     that.goto = (route, params...) ->
         if params.length > 0 and params[0].silent == true
             res = _.where(routes, {route: route})
