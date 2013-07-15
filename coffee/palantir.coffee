@@ -498,7 +498,9 @@ template = (spec, that) ->
         return _that
     )()
 
-    fill = (where, string_id) ->
+    fill = (where, url, string_id) ->
+        data_source = _model.init {url: url}
+
         data_source.get ((data) ->
             data_source.keys (keys) ->
                 for key in keys
@@ -521,7 +523,7 @@ template = (spec, that) ->
 
                 if params.action == 'edit'
                     that.bind params.where, params.string_id
-                    fill params.where, params.string_id
+                    fill params.where, params.url, params.string_id
                 else
                     that.bind params.where, params.string_id
 
@@ -541,9 +543,6 @@ template = (spec, that) ->
     _model = inheriter model
     _validators = inheriter validators
     __ = inheriter(gettext).gettext
-
-    if spec.model_url?
-        data_source = _model.init {url: spec.model_url}
 
     return that
 
@@ -928,6 +927,8 @@ model = (spec={}, that={}) ->
             url += params.id
             delete params.id
 
+        console.log 'getting', url
+
         that.keys -> 
             p.open {
                 url: url
@@ -967,6 +968,9 @@ model = (spec={}, that={}) ->
             callback arguments
 
         that.get saver, last_params
+
+    that.geturl = ->
+        return spec.url
 
     that.less = (callback, params) ->
         params = params ? {}
@@ -1281,7 +1285,6 @@ palantir = singleton((spec={}) ->
             fn.apply(null, arguments)
 
     that.goto = (route, params...) ->
-        console.log 'going', route
         if params.length > 0 and params[0].silent == true
             res = _.where(routes, {route: route})
             for matching in res
@@ -1299,7 +1302,6 @@ palantir = singleton((spec={}) ->
             pull_params location.hash.slice(1)
         res = _.where(routes, {route: route})
 
-        console.log res
         for matching in res
             matching.fn(params)
 
