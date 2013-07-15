@@ -206,14 +206,14 @@ notifier = (spec, that) ->
 
     placeholder = $('#alerts')
 
-    that.notify = (req_data, where=placeholder) ->
+    that.notify = (req_data) ->
         if not messages.get_message(req_data)?
             if messages.get_code_message(req_data.status)?
-                show_message(messages.get_code_message, req_data.status, where)
+                show_message(messages.get_code_message, req_data.status)
                 return
             return
 
-        show_message(messages.get_message, req_data, where)
+        show_message(messages.get_message, req_data)
 
     that.extend_code_messages = (data) ->
         messages.extend_code_messages data
@@ -221,7 +221,7 @@ notifier = (spec, that) ->
     that.extend_messages = (data) ->
         messages.extend_messages data
           
-    show_message = (fn, key, where) ->
+    show_message = (fn, key) ->
         alert = $('<div/>', {
             class: "alert alert-#{ fn(key).type }"
         })
@@ -245,7 +245,7 @@ notifier = (spec, that) ->
         alert.append message_wrapper
         alert.hide()
 
-        where.append alert
+        placeholder.append alert
         alert.show 'slide'
 
     inheriter = _.partial init, notifier, that, spec
@@ -309,8 +309,12 @@ template = (spec, that) ->
     translate = (_, text) ->
         return __ $.trim text
 
-    get_spec = (_, text) ->
-        return spec[$.trim(text)]
+    get_spec = (context) ->
+                    (_, text) ->
+                        trimmed = $.trim text
+                        if context[trimmed]?
+                            return context[trimmed]
+                        return spec[trimmed]
 
     add_element = (element, data) ->
         $(element).parent().append(
@@ -353,13 +357,13 @@ template = (spec, that) ->
 
             modal.show()
 
-    that.parse = (body) ->
+    that.parse = (body, context) ->
         body = body.replace trans_regex, translate
-        body = body.replace spec_regex, get_spec
+        body = body.replace spec_regex, get_spec(context)
 
         return body
 
-    that.bind = (where, actions_object, string_id) ->
+    that.bind = (where, string_id) ->
         for element in where.find('[data-click]')
             $(element).on 'click', (e) ->
                 target = $(e.target)
@@ -504,21 +508,23 @@ template = (spec, that) ->
                         editor.setContent(details)
         }
 
-    that.open = (name, where, object, action='add', string_id) ->
+    that.open = (name, context, params={}) ->
+        params.action = params.action ? 'add'
+
         _libs.open {
             url: template_url + name 
             success: (data) ->
-                data = that.parse data
-                where.html data
+                data = that.parse data, context
+                params.where.html data
 
-                if action == 'edit'
-                    that.bind where, object, string_id
-                    fill where, string_id
+                if params.action == 'edit'
+                    that.bind params.where, params.string_id
+                    fill params.where, params.string_id
                 else
-                    that.bind where, object
+                    that.bind params.where, params.string_id
 
-                _validators.discover where
-            palantir_timeout: 3600*48
+                _validators.discover params.where
+            tout: 3600*48
         }
 
     that.extend_renderers = (extensions) ->
@@ -591,11 +597,13 @@ cache = singleton((spec) ->
 
         searched = "url:#{ url }"
         searched_model = "url:#{ model_url };"
+        console.log url, model_url, _cache, spec.base_url
         for key,value of _cache
             if key.indexOf(searched) != -1 or \
                 key.indexOf(searched_model) != -1
                     dirty = true
                     delete _cache[key]
+        console.log 'deleted', _cache
 
     prune_old = (percent=20) ->
         now = (new Date()).getTime()
@@ -907,6 +915,7 @@ model = (spec={}, that={}) ->
         params = params ? {}
 
         url = spec.url
+        console.log 'url', url
         if params.id?
             url += params.id
             delete params.id
@@ -993,7 +1002,7 @@ model = (spec={}, that={}) ->
 
     that.keys = (callback) ->
         p.open {
-            url: spec.url + 'spec'
+            url: spec.url + 'spec/'
             success: (data) ->
                 data_def = normalize data.data
                 callback _.keys data.data
@@ -1040,8 +1049,8 @@ model = (spec={}, that={}) ->
             set: (value) -> dirty = value
         })
 
-        ret['__submit'] = (callback=( ->), force=false) ->
-            if ret == undefined or (ret.__dirty == false and not force)
+        ret['__submit'] = (callback, force=false) ->
+            if ret.__dirty == false and not force
                 return
             check_deletion(deleted)
 
@@ -1070,16 +1079,8 @@ model = (spec={}, that={}) ->
                     error: callback
                 }
 
-        ret['__delete'] = (callback= -> ) ->
+        ret['__delete'] = (callback) ->
             check_deletion(deleted)
-
-            if not ret.string_id?
-                for el,i in managed
-                    if el == ret
-                        managed[i] == undefined
-                        break
-                ret = undefined
-                return
 
             p.open {
                 url: spec.url + ret.string_id
@@ -1128,18 +1129,6 @@ palantir = singleton((spec={}) ->
     if spec[0]?
         spec = spec[0]
 
-    _that = {}
-    _.extend _that, helpers(spec)
-
-    # TODO: Make it switchable by spec
-    connection_storage = stack()
-    running_requests = 0
-    max_requests = spec.max_requests ? 4
-
-    spec.placeholder = spec.placeholder ? $('body')
-
-    routes = []
-
     # Magic generating the base url for the app
     base_url = spec.base_url ? (location.href.match /^.*\//)
     if Object.prototype.toString.call(base_url) == '[object Array]'
@@ -1151,6 +1140,18 @@ palantir = singleton((spec={}) ->
     if base_url[base_url.length-1] != '/'
         base_url += '/'
     spec.base_url = base_url
+
+    _that = {}
+    _.extend _that, helpers(spec)
+
+    # TODO: Make it switchable by spec
+    connection_storage = stack()
+    running_requests = 0
+    max_requests = spec.max_requests ? 4
+
+    spec.placeholder = spec.placeholder ? $('body')
+
+    routes = []
 
     wait_time = spec.wait_time ? 100
 
@@ -1249,8 +1250,8 @@ palantir = singleton((spec={}) ->
         (wrap_request $.ajax, req_data)()
 
 
-    that.template = (name, where, object={}) ->
-        that.templates.open name, where, object
+    that.template = (name, where) ->
+        that.templates.open name, null, {where: where}
 
     that.extend_code_messages = (data) ->
         if not that.notifier?
