@@ -927,8 +927,6 @@ model = (spec={}, that={}) ->
             url += params.id
             delete params.id
 
-        console.log 'getting', url
-
         that.keys -> 
             p.open {
                 url: url
