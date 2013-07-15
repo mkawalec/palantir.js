@@ -739,10 +739,7 @@ validators = (spec, that) ->
         return _that
     )()
 
-    that.discover = (where) ->
-        if not where?
-            where = spec.placeholder
-
+    that.discover = (where=spec.placeholder) ->
         for form in where.find('.form')
             form = $(form)
             if not form.attr('data-validation_id')?
@@ -776,6 +773,7 @@ validators = (spec, that) ->
 
             form.on 'keyup', 'input,textarea,.nicEdit-main', field_changed
 
+            fields.inhibited = true
             managed[form.attr('data-validation_id')] = fields
 
             form.on 'click', "[data-submit='true']", submit_handler
@@ -785,6 +783,9 @@ validators = (spec, that) ->
         # Handles rechecking the field if its contents changed
         validation_id = $(e.target).attr('data-validation_id')
         for id,fields of managed
+            if fields.inhibited == true
+                continue
+
             if fields[validation_id] != undefined
                 errors = test managed[id], validation_id
                 return display_errors errors, validation_id
@@ -801,6 +802,7 @@ validators = (spec, that) ->
         if errors.length > 0
             $(e.target).attr('data-prevent_default', 'true')
             display_errors errors
+            managed[id].inhibited = false
         else
             $(e.target).attr('data-prevent_default', 'false')
 
@@ -865,6 +867,9 @@ validators = (spec, that) ->
     test = (fields, current_id) ->
         errors = []
         for id,methods of fields
+            if id == 'inhibited'
+                continue
+
             errors.push.apply(errors, test_field(id, methods, current_id))
         return errors
 
@@ -1276,6 +1281,7 @@ palantir = singleton((spec={}) ->
             fn.apply(null, arguments)
 
     that.goto = (route, params...) ->
+        console.log 'going', route
         if params.length > 0 and params[0].silent == true
             res = _.where(routes, {route: route})
             for matching in res
@@ -1284,10 +1290,6 @@ palantir = singleton((spec={}) ->
 
         route = '#'+that.helpers.add_params route, params
         window.location.hash = route
-
-        ((routes) ->
-            hashchange()
-        )(routes)
         
     hashchange = (e) ->
         e?.preventDefault()
@@ -1297,6 +1299,7 @@ palantir = singleton((spec={}) ->
             pull_params location.hash.slice(1)
         res = _.where(routes, {route: route})
 
+        console.log res
         for matching in res
             matching.fn(params)
 
