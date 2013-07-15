@@ -309,7 +309,7 @@ template = (spec, that) ->
     translate = (_, text) ->
         return __ $.trim text
 
-    get_spec = (context) ->
+    get_spec = (context={}) ->
                     (_, text) ->
                         trimmed = $.trim text
                         if context[trimmed]?
@@ -597,13 +597,11 @@ cache = singleton((spec) ->
 
         searched = "url:#{ url }"
         searched_model = "url:#{ model_url };"
-        console.log url, model_url, _cache, spec.base_url
         for key,value of _cache
             if key.indexOf(searched) != -1 or \
                 key.indexOf(searched_model) != -1
                     dirty = true
                     delete _cache[key]
-        console.log 'deleted', _cache
 
     prune_old = (percent=20) ->
         now = (new Date()).getTime()
@@ -915,7 +913,6 @@ model = (spec={}, that={}) ->
         params = params ? {}
 
         url = spec.url
-        console.log 'url', url
         if params.id?
             url += params.id
             delete params.id
