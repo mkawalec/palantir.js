@@ -306,7 +306,7 @@ template = (spec, that) ->
     if template_url.indexOf('://') == -1
         template_url = spec.base_url + template_url
 
-    if spec.model_url.indexOf('://') == -1
+    if spec.model_url? and spec.model_url.indexOf('://') == -1
         spec.model_url = spec.base_url + spec.model_url
 
     translate = (_, text) ->
@@ -499,9 +499,8 @@ template = (spec, that) ->
     )()
 
     fill = (where, string_id) ->
-        posts.get ((data) ->
-            posts.keys (keys) ->
-                console.log data, keys
+        data_source.get ((data) ->
+            data_source.keys (keys) ->
                 for key in keys
                     col = $("[data-binding='#{ key }']")
                     if col.attr('data-wysiwyg') != 'true'
@@ -543,7 +542,8 @@ template = (spec, that) ->
     _validators = inheriter validators
     __ = inheriter(gettext).gettext
 
-    posts = _model.init {url: spec.model_url}
+    if spec.model_url?
+        data_source = _model.init {url: spec.model_url}
 
     return that
 
