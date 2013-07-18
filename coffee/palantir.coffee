@@ -1279,10 +1279,12 @@ palantir = singleton((spec={}) ->
     that.route = (route, fn) ->
         routes.push({route: route, fn: fn})
 
-        () ->
+        (_action=null) ->
+            if _action == '_testing' then return fn
             fn.apply(null, arguments)
 
     that.route_for = (fn) ->
+        fn = fn('_testing')
         matching = _.filter routes, (item) ->
             if item.fn == fn then true else false
 
