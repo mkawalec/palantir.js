@@ -1140,7 +1140,7 @@ palantir = singleton((spec={}) ->
         spec = spec[0]
 
     # Magic generating the base url for the app
-    base_url = spec.base_url ? (location.href.match /^.*\//)
+    base_url = spec.base_url ? (location.href.match /^(http|https):\/\/[a-zA-Z0-9:]+\//)
     if Object.prototype.toString.call(base_url) == '[object Array]'
         if base_url.length == 0
             base_url = location.href
@@ -1150,7 +1150,6 @@ palantir = singleton((spec={}) ->
     if base_url[base_url.length-1] != '/'
         base_url += '/'
     spec.base_url = base_url
-
 
     _that = {}
     _.extend _that, helpers(spec)
