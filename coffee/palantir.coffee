@@ -100,7 +100,6 @@ helpers = singleton((spec) ->
                 ret.push(that.deep_copy(el))
             return ret
         else if typeof obj == 'object' and obj != null
-            console.log obj
             ret = {}
             for param, value of obj
                 ret[param] = that.deep_copy(value)
@@ -934,7 +933,6 @@ model = (spec={}, that={}) ->
                 data: params
                 success: (data) ->
                     ret = []
-                    console.log 'WTF?', data
                     if Object.prototype.toString.call(data.data) == '[object Array]'
                         for obj in data.data
                             ret.push makeobj obj
