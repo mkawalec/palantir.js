@@ -53,7 +53,7 @@ singleton = (fn) ->
         that = arguments[1] ? {}
 
         if singleton.prototype.cached? and \
-            singleton.prototype.cached[fn]?
+           singleton.prototype.cached[fn]?
                 return _.extend {}, singleton.prototype.cached[fn], that
 
         if not singleton.prototype.cached?
@@ -99,7 +99,8 @@ helpers = singleton((spec) ->
             for el in obj
                 ret.push(that.deep_copy(el))
             return ret
-        else if typeof obj == 'object'
+        else if typeof obj == 'object' and obj != null
+            console.log obj
             ret = {}
             for param, value of obj
                 ret[param] = that.deep_copy(value)
@@ -569,10 +570,10 @@ cache = singleton((spec) ->
 
     that.get = (key) ->
         if _cache[key]
-            if has_timeout(_cache[key])
-                that.delete(key)
+            if has_timeout _cache[key]
+                that.delete key
             else if _cache[key] != undefined
-                return _helpers.deep_copy(_cache[key].payload)
+                return _helpers.deep_copy _cache[key].payload
         return undefined
 
     that.set = (key, value, new_timeout=timeout) ->
@@ -933,6 +934,7 @@ model = (spec={}, that={}) ->
                 data: params
                 success: (data) ->
                     ret = []
+                    console.log 'WTF?', data
                     if Object.prototype.toString.call(data.data) == '[object Array]'
                         for obj in data.data
                             ret.push makeobj obj
@@ -1036,7 +1038,7 @@ model = (spec={}, that={}) ->
         deleted = false
 
         for prop,value of raw_object
-            if typeof value == 'object'
+            if typeof value == 'object' and value != null
                 ret[prop] = value
                 continue
 
