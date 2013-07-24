@@ -1036,7 +1036,8 @@ model = (spec={}, that={}) ->
         deleted = false
 
         for prop,value of raw_object
-            if typeof value == 'object' and value != null
+            if (typeof value == 'object' and value != null) or \
+               typeof value == 'function'
                 ret[prop] = value
                 continue
 
@@ -1044,12 +1045,12 @@ model = (spec={}, that={}) ->
                 set_value = value
                 Object.defineProperty(ret, prop, {
                     set: (new_value) ->
-                        check_deletion(deleted)
+                        check_deletion(ret)
 
-                        dirty = true
+                        ret.__dirty = true
                         set_value = new_value
                     get: ->
-                        check_deletion(deleted)
+                        check_deletion(ret)
                         return set_value
                 })
             )(prop)
@@ -1062,7 +1063,7 @@ model = (spec={}, that={}) ->
         ret['__submit'] = (callback, force=false) ->
             if ret.__dirty == false and not force
                 return
-            check_deletion(deleted)
+            check_deletion(ret)
 
             that.keys (keys) ->
                 data = {}
@@ -1089,8 +1090,10 @@ model = (spec={}, that={}) ->
                     error: callback
                 }
 
+        ret['__deleted'] = -> deleted
+
         ret['__delete'] = (callback) ->
-            check_deletion(deleted)
+            check_deletion(ret)
 
             p.open {
                 url: spec.url + ret.string_id
@@ -1110,8 +1113,8 @@ model = (spec={}, that={}) ->
 
         return ret
 
-    check_deletion = (deleted) ->
-        if deleted == true
+    check_deletion = (obj) ->
+        if obj.__deleted() == true
             throw { 
                 type: 'DeletedError'
                 message: 'The object doesn\'t exist any more'
