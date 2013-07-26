@@ -122,6 +122,12 @@ asyncTest 'submit_delete_test', ->
         test_model.submit ->
             start()
             ok typeof new_obj.string_id == 'string'
+            try
+                new_obj.string_id = 'this should fail'
+                ok false
+            catch e
+                ok e.type == 'ValueError'
+
             stop()
 
             new_obj.__delete ->
@@ -197,7 +203,7 @@ asyncTest 'Test routes', ->
 
 asyncTest 'Parallel test', ->
     singleton.prototype = {}
-    p = palantir({max_requests: 1})
+    p = palantir(_.extend spec, {max_requests: 1})
 
     p.open {
         url: 'http://localhost:5000/?q='+p.helpers.random_string()
@@ -234,7 +240,7 @@ asyncTest 'Parallel test', ->
     }
 
 asyncTest 'Validator test', ->
-    p = palantir()
+    p = palantir(spec)
 
     p.helpers.delay ->
         start()
@@ -252,3 +258,18 @@ asyncTest 'Validator test', ->
 
         $('#req_field')[0].value = 'dasdasdsa'
         $('#form_submitter')[0].click()
+
+asyncTest 'Field failing test', ->
+    singleton.prototype = {}
+    p = palantir(spec)
+
+    test_model = p.model.init {
+        id: 'string_id'
+        url: 'http://localhost:5000/fail_post/'
+    }
+
+    p.helpers.delay ->
+        start()
+        ok true
+
+

@@ -158,6 +158,20 @@ def post():
         db_session.rollback()
         abort(500)
 
+@app.route('/fail_post/', methods=['GET', 'POST'])
+@crossdomain(origin='*')
+def fail_post():
+    if request.method == 'GET':
+        return index()
+
+    f = json.loads(request.form.get('data'))
+    abort_message(409, 'fieldError', 'name', 'not(%s)' % (f['name']))
+
+@app.route('/fail_post/spec/')
+@crossdomain(origin='*')
+def fail_post_spec():
+    return spec()
+
 @app.route('/<id>', methods=['DELETE', 'OPTIONS'])
 @crossdomain(origin='*')
 def delete(id):
