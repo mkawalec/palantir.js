@@ -1182,7 +1182,7 @@ model = (spec={}, that={}) ->
                         ret.__dirty = false
 
                         callback()
-                    error: save_failed
+                    error: validate_failed(callback)
                 }
 
         ret['__deleted'] = -> deleted
@@ -1208,8 +1208,20 @@ model = (spec={}, that={}) ->
 
         return ret
 
-    save_failed = (data) ->
-        return
+    validate_failed = (callback) ->
+        (data) ->
+            # Validates the failed fields, if this is what the server
+            # wants.
+            if not data.status? or data.status != 'fieldError'
+                return
+            if data.field? and data.valiators?
+                _templates.bind_to_field($(data.field), data.validators, true)
+
+            # Let's call the callback now, with the data
+            callback data
+
+            # TODO:
+            # accept a list of fields & validators
 
     check_deletion = (obj) ->
         if obj.__deleted() == true
