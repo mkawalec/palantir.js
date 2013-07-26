@@ -17,7 +17,7 @@ import json
 
 from crossdomain import crossdomain
 
-engine = create_engine('sqlite:////tmp/blah.db')
+engine = create_engine('sqlite:////tmp/palantir_tests.db')
 db_session = scoped_session(sessionmaker(autocommit=False,
                                          autoflush=False,
                                          bind=engine))
