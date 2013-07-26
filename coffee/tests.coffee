@@ -263,11 +263,12 @@ asyncTest 'Validator test', ->
 asyncTest 'Field failing test', ->
     p = palantir(spec)
 
+    test_model = p.model.init {
+        id: 'string_id'
+        url: 'http://localhost:5000/fail_post/'
+    }
+
     p.helpers.delay ->
-        test_model = p.model.init {
-            id: 'string_id'
-            url: 'http://localhost:5000/fail_post/'
-        }
 
         start()
         ok true
