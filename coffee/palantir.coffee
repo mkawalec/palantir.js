@@ -793,16 +793,16 @@ validators = (spec, that) ->
             for field in form.find('[data-validators]')
                 field = $(field)
                 field.attr 'data-validation_id', _helpers.random_string()
-                validators = []
+                field_validators = []
                 parsers = []
 
                 for validator in parse_validators(field[0], field.attr('data-validators'))
-                    validators.push validator
+                    field_validators.push validator
                 for parser in parse_validators(field[0], field.attr('data-parsers'))
                     parsers.push parser
 
                 methods = {
-                    validators: validators
+                    validators: field_validators
                     parsers: parsers
                 }
                 fields[field.attr('data-validation_id')] = methods
@@ -824,9 +824,9 @@ validators = (spec, that) ->
             form.on 'submit', submit_event_handler
 
     that.bind_to_field = (field, validators_string, fire=false) ->
-        validators = []
+        field_validators = []
         for validator in parse_validators(field[0], validators_string)
-            validators.push validator
+            field_validators.push validator
 
         form = field.closest('.form')
         if form.length == 0
@@ -843,16 +843,16 @@ validators = (spec, that) ->
         if managed[form_id]?
             field_obj = managed[form_id][field_id]
             if field_obj?
-                field_obj.validators = field_obj.validators.concat(validators)
+                field_obj.validators = field_obj.validators.concat(field_validators)
             else
                 managed[form_id][field_id] = {
-                    validators: validators
+                    validators: field_validators
                     parsers: parsers
                 }
         else
             managed[form_id] = {}
             managed[form_id][field_id] = {
-                valiators: validators
+                valiators: field_validators
                 parsers: parsers
             }
 
@@ -1460,8 +1460,8 @@ palantir = singleton((spec={}) ->
     that.notifier = inheriter notifier
     that.helpers = inheriter helpers
     that.gettext = inheriter gettext
-    that.validators = inheriter validators
     that.model = inheriter model
+    that.validators = inheriter validators
 
     return that
 )
