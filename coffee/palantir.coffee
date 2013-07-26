@@ -1065,8 +1065,17 @@ model = (spec={}, that={}) ->
 
             that.keys (keys) ->
                 data = {}
+
+                # Persist any keys
                 for key in keys
                     data[key] = ret[key]
+
+                # But also persist all 'non-special' properties of the
+                # data object
+                for key,value of _.filter(ret, 
+                   (el, key) -> key.slice(0, 2) != '__')
+                    data[key] = value
+
                 data = {data: JSON.stringify data}
 
                 req_type = if ret.string_id? then 'PUT' else 'POST'
