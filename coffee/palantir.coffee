@@ -312,12 +312,10 @@ template = (spec, that) ->
     translate = (_, text) ->
         return __ $.trim text
 
-    get_spec = (context={}) ->
+    get_spec = (context) ->
                     (_, text) ->
                         trimmed = $.trim text
-                        if context[trimmed]?
-                            return context[trimmed]
-                        return spec[trimmed]
+                        return context[trimmed]
 
     add_element = (element, data) ->
         $(element).parent().append(
@@ -360,7 +358,7 @@ template = (spec, that) ->
 
             modal.show()
 
-    that.parse = (body, context) ->
+    that.parse = spec.template_parser ? (body, context=spec) ->
         body = body.replace trans_regex, translate
         body = body.replace spec_regex, get_spec(context)
 
