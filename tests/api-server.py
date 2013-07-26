@@ -1,5 +1,6 @@
 from flask import (Flask, request, abort,
-        jsonify, g)
+        jsonify, g, Response)
+from werkzeug.exceptions import HTTPException
 
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
@@ -12,6 +13,7 @@ from sqlalchemy import Column, Integer, String, Sequence
 import random
 
 from datetime import datetime
+import json
 
 from crossdomain import crossdomain
 
@@ -90,6 +92,12 @@ def class_spec(instance, restricted=[]):
             ret[key] = instance.__dict__[key].__class__.__name__
 
     return ret
+
+def abort_message(code, status, fields, validators):
+    payload = json.dumps(dict(status=status, fields=fields, validators=validators))
+
+    raise HTTPException(response=Response(payload, code))
+
 
 app = Flask(__name__)
 
