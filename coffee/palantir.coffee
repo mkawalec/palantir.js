@@ -1162,7 +1162,6 @@ model = (spec={}, that={}) ->
                 # data object
                 for key,value of _.filter(ret, 
                    (el, key) -> key.slice(0, 2) != '__')
-                    console.log 'setting', key, value
                     data[key] = value
 
                 data = {data: JSON.stringify data}
