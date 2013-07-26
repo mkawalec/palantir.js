@@ -796,9 +796,9 @@ validators = (spec, that) ->
                 validators = []
                 parsers = []
 
-                for validator in parse_validators(field[0])
+                for validator in parse_validators(field[0], field.attr('data-validators'))
                     validators.push validator
-                for parser in parse_validators(field[0], 'data-parsers')
+                for parser in parse_validators(field[0], field.attr('data-parsers'))
                     parsers.push parser
 
                 methods = {
@@ -878,8 +878,7 @@ validators = (spec, that) ->
 
     __ = p.gettext.gettext
 
-    parse_validators = (field, attr='data-validators') ->
-        to_parse = $(field).attr(attr)
+    parse_validators = (field, to_parse) ->
         if not to_parse?
             return []
 
