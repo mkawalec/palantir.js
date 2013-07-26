@@ -146,7 +146,8 @@ def spec():
 @app.route('/', methods=['POST'])
 @crossdomain(origin='*')
 def post():
-    added = TestItem(request.form.get('name'))
+    f = json.loads(request.form.get('data'))
+    added = TestItem(f['name'])
     db_session.add(added)
 
     try:

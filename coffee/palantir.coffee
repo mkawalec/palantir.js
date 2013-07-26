@@ -1162,6 +1162,7 @@ model = (spec={}, that={}) ->
                 # data object
                 for key,value of _.filter(ret, 
                    (el, key) -> key.slice(0, 2) != '__')
+                    console.log 'setting', key, value
                     data[key] = value
 
                 data = {data: JSON.stringify data}
@@ -1177,6 +1178,7 @@ model = (spec={}, that={}) ->
                     data: data
                     type: req_type
                     success: (data) ->
+                        console.log 'dd', data.data
                         for key, value of data.data
                             ret[key] = value
                         ret.__dirty = false
