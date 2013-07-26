@@ -200,7 +200,7 @@ asyncTest 'Parallel test', ->
     p = palantir({max_requests: 1})
 
     p.open {
-        url: 'http://google.com/?q='+p.helpers.random_string()
+        url: 'http://localhost:5000/?q='+p.helpers.random_string()
         success: ->
             start()
             ok true
@@ -212,7 +212,7 @@ asyncTest 'Parallel test', ->
     }
 
     p.open {
-        url: 'http://yahoo.com/?q='+p.helpers.random_string()
+        url: 'http://localhost:5000/?q='+p.helpers.random_string()
         success: ->
             start()
             ok true
@@ -222,7 +222,7 @@ asyncTest 'Parallel test', ->
     }
 
     p.open {
-        url: 'http://microsoft.com/?q='+p.helpers.random_string()
+        url: 'http://localhost:5000/?q='+p.helpers.random_string()
         success: ->
             start()
             ok true
