@@ -158,7 +158,7 @@ def post():
         db_session.rollback()
         abort(500)
 
-@app.route('/<id>', methods=['DELETE'])
+@app.route('/<id>', methods=['DELETE', 'OPTIONS'])
 @crossdomain(origin='*')
 def delete(id):
     try:
