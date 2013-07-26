@@ -825,7 +825,7 @@ validators = (spec, that) ->
 
     that.bind_to_field = (field, validators_string, fire=false) ->
         validators = []
-        for validator in parse_validators(field[0], field.attr('data-valiators'))
+        for validator in parse_validators(field[0], validators_string)
             validators.push validator
 
         form = field.closest('.form')
@@ -1215,7 +1215,7 @@ model = (spec={}, that={}) ->
             if not data.status? or data.status != 'fieldError'
                 return
             if data.field? and data.valiators?
-                _templates.bind_to_field($(data.field), data.validators, true)
+                _templates.bind_to_field($("[data-binding='#{ data.field }']"), data.validators, true)
 
             # Let's call the callback now, with the data
             callback data
