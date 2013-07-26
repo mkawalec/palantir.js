@@ -11,8 +11,6 @@ from sqlalchemy import Column, Integer, String, Sequence
 
 import random
 
-from flask.ext.classy import FlaskView,route
-
 from datetime import datetime
 
 from crossdomain import crossdomain
@@ -95,77 +93,74 @@ def class_spec(instance, restricted=[]):
 
 app = Flask(__name__)
 
-class TestView(FlaskView):
-    @crossdomain(origin='*')
-    def index(self):
-        limit = request.args.get('limit')
-        try:
-            limit = int(limit)
-            if limit > 30:
-                limit = 30
-        except (ValueError, TypeError):
+@app.route('/test/')
+@crossdomain(origin='*')
+def index(self):
+    limit = request.args.get('limit')
+    try:
+        limit = int(limit)
+        if limit > 30:
             limit = 30
+    except (ValueError, TypeError):
+        limit = 30
 
-        ret = db_session.query(TestItem)    
+    ret = db_session.query(TestItem)    
 
-        after = request.args.get('after')
-        if after:
-            stmt = db_session.query(TestItem).\
-                filter(TestItem.string_id == after).subquery()
+    after = request.args.get('after')
+    if after:
+        stmt = db_session.query(TestItem).\
+            filter(TestItem.string_id == after).subquery()
 
-            ret = ret.\
-                    filter(TestItem.id > stmt.c.id)
+        ret = ret.\
+                filter(TestItem.id > stmt.c.id)
 
-        try:
-            ret = ret.\
-                order_by(TestItem.id).\
-                limit(limit+1).\
-                all()
-        except NoResultFound:
-            abort(409)
+    try:
+        ret = ret.\
+            order_by(TestItem.id).\
+            limit(limit+1).\
+            all()
+    except NoResultFound:
+        abort(409)
 
-        if len(ret) == limit+1:
-            more = True
-        else:
-            more = False
+    if len(ret) == limit+1:
+        more = True
+    else:
+        more = False
 
-        return jsonify(data=stringify_class(ret), more=more)
+    return jsonify(data=stringify_class(ret), more=more)
 
-    @crossdomain(origin='*')
-    def spec(self):
-        ret = db_session.query(TestItem).first()
-        return jsonify(data=class_spec(ret))
+@app.route('/test/spec/')
+@crossdomain(origin='*')
+def spec(self):
+    ret = db_session.query(TestItem).first()
+    return jsonify(data=class_spec(ret))
 
-    @crossdomain(origin='*')
-    def post(self):
-        added = TestItem(request.form.get('name'))
-        db_session.add(added)
+@app.route('/test/', methods=['POST'])
+@crossdomain(origin='*')
+def post(self):
+    added = TestItem(request.form.get('name'))
+    db_session.add(added)
 
-        try:
-            db_session.commit()
-            added.string_id
-            return jsonify(data=stringify_class(added))
-        except IntegrityError:
-            db_session.rollback()
-            abort(500)
+    try:
+        db_session.commit()
+        added.string_id
+        return jsonify(data=stringify_class(added))
+    except IntegrityError:
+        db_session.rollback()
+        abort(500)
 
-    @crossdomain(origin='*')
-    @route('/<id>', methods=['DELETE'])
-    def delete(self, id):
-        try:
-            item = db_session.query(TestItem).\
-                    filter(TestItem.string_id == id).\
-                    one()
-        except NoResultFound:
-            abort(404)
+@app.route('/test/<id>', methods=['DELETE'])
+@crossdomain(origin='*')
+def delete(self, id):
+    try:
+        item = db_session.query(TestItem).\
+                filter(TestItem.string_id == id).\
+                one()
+    except NoResultFound:
+        abort(404)
 
-        db_session.delete(item)
-        return jsonify(status='succ')
-
-
-
-
-TestView.register(app, route_base='/')
+    db_session.delete(item)
+    return jsonify(status='succ')
 
 if __name__ == '__main__':
     init_db()
