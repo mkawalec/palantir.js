@@ -1177,7 +1177,6 @@ model = (spec={}, that={}) ->
                     data: data
                     type: req_type
                     success: (data) ->
-                        console.log 'dd', data.data
                         for key, value of data.data
                             ret[key] = value
                         ret.__dirty = false
@@ -1225,7 +1224,7 @@ model = (spec={}, that={}) ->
             # accept a list of fields & validators
 
     check_deletion = (obj) ->
-        if obj.__deleted() == true
+        if not obj? or obj.__deleted() == true
             throw { 
                 type: 'DeletedError'
                 message: 'The object doesn\'t exist any more'
