@@ -1131,6 +1131,12 @@ model = (spec={}, that={}) ->
                 set_value = value
                 Object.defineProperty(ret, prop, {
                     set: (new_value) ->
+                        if prop == spec.id and set_value?
+                            throw {
+                                type: 'ValueError'
+                                message: 'You are trying to set '+\
+                                    'the id value which was already set'
+                            }
                         check_deletion(ret)
 
                         ret.__dirty = true
@@ -1178,7 +1184,11 @@ model = (spec={}, that={}) ->
                     type: req_type
                     success: (data) ->
                         for key, value of data.data
-                            ret[key] = value
+                            try
+                                ret[key] = value
+                            catch e
+                                continue
+
                         ret.__dirty = false
 
                         callback()
