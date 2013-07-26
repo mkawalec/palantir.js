@@ -679,6 +679,9 @@ validators = (spec, that) ->
         _that = {}
         _validators = {
             length: (object, kwargs, args...) ->
+                # Checks if the length of object value 
+                # is between the given bounds
+
                 kwargs.min = kwargs.min ? (args[0] ? 0)
                 kwargs.max = kwargs.max ? (args[1] ? Number.MAX_VALUE)
                 errors = []
@@ -698,6 +701,8 @@ validators = (spec, that) ->
                 return errors
 
             email: (object, kwargs, args...) ->
+                # Checks if the value of a field is an email
+
                 regex = kwargs.regex if kwargs.regex? else \
                     /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$/
                 if not $.trim(object.value).match regex
@@ -705,12 +710,18 @@ validators = (spec, that) ->
                 return null
 
             required: (object) ->
+                # Something needs to be entered in the field
+
                 value = if object.value? then object.value else $(object).text()
                 if $.trim(value).length == 0
                     return [__('This field is obligatory')]
                 return null
 
             decimal: (object) ->
+                # Brings the number to a python-friendly decimal form
+                # (if possible) and tests if the value can even be 
+                # interpreted as a number
+                
                 value = $.trim(object.value).replace ',', '.'
                 value = value.replace ' ', ''
 
@@ -720,6 +731,42 @@ validators = (spec, that) ->
 
                 if object.value != value
                     object.value = value
+                return null
+
+            not: (object, kwargs, args...) ->
+                # Checks if the object value is the same as one of the provided
+                # values, fails if it is
+
+                value = if object.value? then object.value else $(object).text()
+                value = $.trim value
+
+                for arg in args
+                    if value == arg
+                        return [__("The value must be different than #{ value }")]
+                return null
+
+            same_as: (object, kwargs, args...) ->
+                # Requires the field to be the same as all of the 
+                # fields provided as args (or kwargs.field)
+
+                get_value = (field) ->
+                    field = $(field)
+                    value = if field[0].value? then field[0].value else field.text()
+                    return $.trim value
+
+                value = get_value object
+
+                if kwargs.field?
+                    args.push(kwargs.field)
+
+                errors = []
+                for field in args    
+                    second_value = get_value field
+
+                    if second_value != value
+                        errors.push __("The value must be the same as the value in #{ field }")
+                if errors.length > 0
+                    return errors
                 return null
         }
 
@@ -1094,7 +1141,7 @@ model = (spec={}, that={}) ->
                         ret.__dirty = false
 
                         callback()
-                    error: callback
+                    error: save_failed
                 }
 
         ret['__deleted'] = -> deleted
@@ -1120,6 +1167,9 @@ model = (spec={}, that={}) ->
 
         return ret
 
+    save_failed = (data) ->
+        return
+
     check_deletion = (obj) ->
         if obj.__deleted() == true
             throw { 
@@ -1140,6 +1190,7 @@ model = (spec={}, that={}) ->
     inheriter = _.partial init, model, that, spec
     p = inheriter palantir
     _helpers = inheriter helpers
+    _validators = inheriter validators
 
     return that
 
