@@ -823,6 +823,48 @@ validators = (spec, that) ->
             form.on 'click', "[data-submit='true']", submit_handler
             form.on 'submit', submit_event_handler
 
+    that.bind_to_field = (field, validators_string, fire=false) ->
+        validators = []
+        for validator in parse_validators(field[0], field.attr('data-valiators'))
+            validators.push validator
+
+        form = field.closest('.form')
+        if form.length == 0
+            form = field.parent()
+
+        if not form.attr('data-validation_id')?
+            form.attr 'data-validation_id', _helpers.random_string()
+
+        if not field.attr('data-valiation_id')?
+            field.attr 'data-valiation_id', _helpers.random_string()
+
+        form_id = form.attr('data-validation_id')
+        field_id = field.attr('data-validation_id')
+        if managed[form_id]?
+            field_obj = managed[form_id][field_id]
+            if field_obj?
+                field_obj.validators = field_obj.validators.concat(validators)
+            else
+                managed[form_id][field_id] = {
+                    validators: validators
+                    parsers: parsers
+                }
+        else
+            managed[form_id] = {}
+            managed[form_id][field_id] = {
+                valiators: validators
+                parsers: parsers
+            }
+
+        form.off 'keyup'
+        form.on 'keyup', 'input,textarea,.nicEdit-main', field_changed
+
+        if fire == true
+            errors = []
+            errors = errors.concat(test_field field_i, managed[form_id][field_id])
+            if errors.length > 0
+                display_errors errors
+
     field_changed = (e) ->
         # Handles rechecking the field if its contents changed
         validation_id = $(e.target).attr('data-validation_id')
