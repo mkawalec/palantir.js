@@ -93,9 +93,9 @@ def class_spec(instance, restricted=[]):
 
 app = Flask(__name__)
 
-@app.route('/test/')
+@app.route('/')
 @crossdomain(origin='*')
-def index(self):
+def index():
     limit = request.args.get('limit')
     try:
         limit = int(limit)
@@ -129,15 +129,15 @@ def index(self):
 
     return jsonify(data=stringify_class(ret), more=more)
 
-@app.route('/test/spec/')
+@app.route('/spec/')
 @crossdomain(origin='*')
-def spec(self):
+def spec():
     ret = db_session.query(TestItem).first()
     return jsonify(data=class_spec(ret))
 
-@app.route('/test/', methods=['POST'])
+@app.route('/', methods=['POST'])
 @crossdomain(origin='*')
-def post(self):
+def post():
     added = TestItem(request.form.get('name'))
     db_session.add(added)
 
@@ -149,9 +149,9 @@ def post(self):
         db_session.rollback()
         abort(500)
 
-@app.route('/test/<id>', methods=['DELETE'])
+@app.route('/<id>', methods=['DELETE'])
 @crossdomain(origin='*')
-def delete(self, id):
+def delete(id):
     try:
         item = db_session.query(TestItem).\
                 filter(TestItem.string_id == id).\
