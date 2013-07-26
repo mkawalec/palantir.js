@@ -15,8 +15,8 @@ test 'existence_test', ->
 test 'methods_existence', ->
     p = palantir(spec)
     ok p.route != undefined
-    ok p.template != undefined
-    ok p.extend_renderers != undefined
+    ok p.templates != undefined
+    ok p.templates.extend_renderers != undefined
     ok p.route != undefined
     ok p.goto != undefined
     ok p.notifier != undefined
