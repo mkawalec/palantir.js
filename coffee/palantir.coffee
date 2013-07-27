@@ -653,7 +653,6 @@ validators = (spec={}, that={}) ->
     display_methods = (singleton ->
         _that = {}
         _methods = {}
-        that.random = Math.random()
 
         _that.get = (id) ->
             return _methods[id]
