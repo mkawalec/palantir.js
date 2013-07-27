@@ -1380,18 +1380,6 @@ palantir = singleton((spec={}) ->
 
     that.template = (name, where) ->
         that.templates.open name, null, {where: where}
-
-    that.extend_code_messages = (data) ->
-        if not that.notifier?
-            return
-
-        that.notifier.extend_code_messages data
-
-    that.extend_messages = (data) ->
-        if not that.notifier?
-            return
-
-        that.notifier.extend_messages data
     
     that.route = (route, fn) ->
         routes.push({route: route, fn: fn})
@@ -1432,8 +1420,8 @@ palantir = singleton((spec={}) ->
 
     # Constructor
     setTimeout((() ->
-        that.extend_code_messages spec.code_messages
-        that.extend_messages spec.messages
+        that.notifier.extend_code_messages spec.code_messages
+        that.notifier.extend_messages spec.messages
 
         $(window).on 'hashchange', (e) ->
             ((routes) ->
