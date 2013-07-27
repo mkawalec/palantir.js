@@ -59,7 +59,7 @@ singleton = (fn) ->
         if not singleton.prototype.cached?
             singleton.prototype = {}
             singleton.prototype.cached = {}
-        singleton.prototype.cached[fn] = (_.partial fn, arguments)()
+        singleton.prototype.cached[fn] = fn.apply(null, arguments)
 
         return _.extend {}, singleton.prototype.cached[fn], that
 
@@ -653,6 +653,7 @@ validators = (spec={}, that={}) ->
     display_methods = (singleton ->
         _that = {}
         _methods = {}
+        that.random = Math.random()
 
         _that.get = (id) ->
             return _methods[id]
@@ -667,6 +668,7 @@ validators = (spec={}, that={}) ->
                 extend_with = to_extend
 
             _.extend(_methods, extend_with)
+
 
         return _that
     )()
@@ -738,7 +740,7 @@ validators = (spec={}, that={}) ->
 
                 for arg in args
                     if value == arg
-                        return [__("The value must be different than #{ value }")]
+                        return [__("The value must be different than \'#{ value }\'")]
                 return null
 
             same_as: (object, kwargs, args...) ->
@@ -843,13 +845,13 @@ validators = (spec={}, that={}) ->
             else
                 managed[form_id][field_id] = {
                     validators: field_validators
-                    parsers: parsers
+                    parsers: []
                 }
         else
             managed[form_id] = {}
             managed[form_id][field_id] = {
-                valiators: field_validators
-                parsers: parsers
+                validators: field_validators
+                parsers: []
             }
 
         form.off 'keyup'
@@ -857,7 +859,7 @@ validators = (spec={}, that={}) ->
 
         if fire == true
             errors = []
-            errors = errors.concat(test_field field_i, managed[form_id][field_id])
+            errors = errors.concat(test_field field_id, managed[form_id][field_id])
             if errors.length > 0
                 display_errors errors
 
@@ -1214,12 +1216,13 @@ model = (spec={}, that={}) ->
     validate_failed = (callback=( -> )) ->
         (data) ->
             data = JSON.parse data.responseText
+
             # Validates the failed fields, if this is what the server
             # wants.
             if not data.status? or data.status != 'fieldError'
                 return
-            if data.field? and data.valiators?
-                _templates.bind_to_field($("[data-binding='#{ data.field }']"), data.validators, true)
+            if data.field?
+                _validators.bind_to_field($("[data-binding='#{ data.field }']"), data.validators, true)
 
             # Let's call the callback now, with the data
             callback data

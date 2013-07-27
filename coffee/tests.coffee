@@ -260,12 +260,26 @@ asyncTest 'Validator test', ->
         $('#req_field')[0].value = 'dasdasdsa'
         $('#form_submitter')[0].click()
 
+test_display_method = (spec={}, that={}) ->
+    that.hide = ->
+        return
+    
+    that.create = (errors, current_id) ->
+        console.log 'errors', errors
+        return
+
+    return that
+
 asyncTest 'Field failing test', ->
     p = palantir(spec)
 
     test_model = p.model.init {
         id: 'string_id'
         url: 'http://localhost:5000/fail_post/'
+    }
+
+    p.validators.extend_display_methods {
+        test_method: test_display_method()
     }
 
     p.helpers.delay ->

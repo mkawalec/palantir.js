@@ -93,12 +93,12 @@ def class_spec(instance, restricted=[]):
 
     return ret
 
-def abort_message(code, status, fields, validators):
+def abort_message(code, status, field=None, validators=None):
     def get_methods():
         options_resp = app.make_default_options_response()
         return options_resp.headers['allow']
 
-    payload = json.dumps(dict(status=status, fields=fields, validators=validators))
+    payload = json.dumps(dict(status=status, field=field, validators=validators))
 
     h = dict()
     h['Access-Control-Allow-Origin'] = '*'
@@ -175,7 +175,7 @@ def fail_post():
         return index()
 
     f = json.loads(request.form.get('data'))
-    abort_message(409, 'fieldError', 'name', 'not(%s)' % (f['name']))
+    abort_message(409, 'fieldError', 'name', "not(%s)" % (f['name']))
 
 @app.route('/fail_post/spec/')
 @crossdomain(origin='*')
