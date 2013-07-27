@@ -1220,6 +1220,7 @@ model = (spec={}, that={}) ->
 
     validate_failed = (callback) ->
         (data) ->
+            data = JSON.parse data.responseText
             # Validates the failed fields, if this is what the server
             # wants.
             if not data.status? or data.status != 'fieldError'

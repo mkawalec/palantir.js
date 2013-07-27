@@ -269,8 +269,12 @@ asyncTest 'Field failing test', ->
     }
 
     p.helpers.delay ->
-
-        start()
-        ok true
+        $('body').append "<input type='text' data-binding='name' id='namefield'/>"
+        $('#namefield')[0].value = 'this is a name'
+        test_model.new (new_obj) ->
+            new_obj.name = $('#namefield')[0].value 
+            test_model.submit ->
+                start()
+                ok true
 
 

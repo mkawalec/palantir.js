@@ -94,9 +94,19 @@ def class_spec(instance, restricted=[]):
     return ret
 
 def abort_message(code, status, fields, validators):
+    def get_methods():
+        options_resp = app.make_default_options_response()
+        return options_resp.headers['allow']
+
     payload = json.dumps(dict(status=status, fields=fields, validators=validators))
 
-    raise HTTPException(response=Response(payload, code))
+    h = dict()
+    h['Access-Control-Allow-Origin'] = '*'
+    h['Access-Control-Allow-Methods'] = get_methods()
+    h['Access-Control-Max-Age'] = str(21600)
+
+    resp = Response(payload, code, headers=h)
+    raise HTTPException(response=resp)
 
 
 app = Flask(__name__)
@@ -158,7 +168,7 @@ def post():
         db_session.rollback()
         abort(500)
 
-@app.route('/fail_post/', methods=['GET', 'POST'])
+@app.route('/fail_post/', methods=['GET', 'POST', 'OPTIONS'])
 @crossdomain(origin='*')
 def fail_post():
     if request.method == 'GET':
