@@ -63,7 +63,7 @@ singleton = (fn) ->
 
         return _.extend {}, singleton.prototype.cached[fn], that
 
-helpers = singleton((spec) ->
+helpers = singleton((spec={}) ->
     that = {}
 
     chars = 'abcdefghijklmnoprstuwqxyzABCDEFGHIJKLMNOPRSTUWQXYZ0123456789'
@@ -152,10 +152,9 @@ helpers = singleton((spec) ->
     return that
 )
 
-gettext = singleton((spec, that) ->
+gettext = singleton((spec={}, that={}) ->
     if spec[0]?
         spec = spec[0]
-    that = that ? {}
 
     lang = spec.lang ? ($('html').attr('lang') ? 'en')
     lang = if lang.length == 0 then 'en' else lang
@@ -200,8 +199,7 @@ gettext = singleton((spec, that) ->
     return that
 )
 
-notifier = (spec, that) ->
-    that = that ? {}
+notifier = (spec={}, that={}) ->
     _helpers = helpers(spec)
 
     placeholder = $('#alerts')
@@ -290,8 +288,7 @@ notifier = (spec, that) ->
 
     return that
 
-template = (spec, that) ->
-    that = that ? {}
+template = (spec={}, that={}) ->
     if spec[0]?
         spec = spec[0]
 
@@ -544,7 +541,7 @@ template = (spec, that) ->
 
     return that
 
-cache = singleton((spec) ->
+cache = singleton((spec={}) ->
     that = {}
     _helpers = helpers(spec)
 
@@ -645,8 +642,7 @@ cache = singleton((spec) ->
     return that
 )
 
-validators = (spec, that) ->
-    that = that ? {}
+validators = (spec={}, that={}) ->
     _helpers = helpers spec
 
     # The fields managed by this code
