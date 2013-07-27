@@ -1001,7 +1001,7 @@ model = (spec={}, that={}) ->
         return _that
     )()
 
-    that.get = (callback, params, error_callback) ->
+    that.get = (callback=( -> ), params, error_callback=( -> )) ->
         params = params ? {}
 
         url = spec.url
@@ -1033,8 +1033,7 @@ model = (spec={}, that={}) ->
                 palantir_timeout: 300
             }
 
-    that.more = (callback, params) ->
-        params = params ? last_params
+    that.more = (callback=( -> ), params=last_params) ->
         if step_index > -1
             params.after = steps[step_index]
         else if params.after?
@@ -1052,9 +1051,7 @@ model = (spec={}, that={}) ->
     that.geturl = ->
         return spec.url
 
-    that.less = (callback, params) ->
-        params = params ? {}
-
+    that.less = (callback=( -> ), params={}) ->
         if step_index < 1 and params.after?
             delete params.after
         else if step_index > 0
@@ -1066,22 +1063,22 @@ model = (spec={}, that={}) ->
 
         that.get saver, params
 
-    that.submit = (callback) ->
+    that.submit = (callback=( -> )) ->
         for el in (_.filter managed, (item) -> if item? then true else false)
             if el.__dirty == true
                 el.__submit callback
 
-    that.submit_all = (callback) ->
+    that.submit_all = (callback=( -> )) ->
         for model in created_models.get()
             model.submit callback
 
-    that.delete = (object, callback) ->
+    that.delete = (object, callback=( -> )) ->
         object.__delete callback
 
     that._all_models = ->
         return created_models.get()
 
-    that.new = (callback) ->
+    that.new = (callback=( -> )) ->
         that.keys ->
             new_def = _helpers.deep_copy(data_def)
             for key, value of new_def
@@ -1092,7 +1089,7 @@ model = (spec={}, that={}) ->
 
             callback ret
 
-    that.keys = (callback) ->
+    that.keys = (callback=( -> )) ->
         p.open {
             url: spec.url + 'spec/'
             success: (data) ->
@@ -1148,7 +1145,7 @@ model = (spec={}, that={}) ->
             set: (value) -> dirty = value
         })
 
-        ret['__submit'] = (callback, force=false) ->
+        ret['__submit'] = (callback=( -> ), force=false) ->
             if ret.__dirty == false and not force
                 return
             check_deletion(ret)
@@ -1193,7 +1190,7 @@ model = (spec={}, that={}) ->
 
         ret['__deleted'] = -> deleted
 
-        ret['__delete'] = (callback) ->
+        ret['__delete'] = (callback=( -> )) ->
             check_deletion(ret)
 
             p.open {
@@ -1214,7 +1211,7 @@ model = (spec={}, that={}) ->
 
         return ret
 
-    validate_failed = (callback) ->
+    validate_failed = (callback=( -> )) ->
         (data) ->
             data = JSON.parse data.responseText
             # Validates the failed fields, if this is what the server
