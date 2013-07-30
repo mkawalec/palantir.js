@@ -1039,7 +1039,8 @@ model = (spec={}, that={}) ->
 
         saver = ->
             if step_index+1 == steps.length
-                steps.push ret[ret.length-1][spec.id]
+                last_arg = _.last arguments[0]
+                steps.push last_arg[spec.id]
             step_index += 1
 
             callback arguments
