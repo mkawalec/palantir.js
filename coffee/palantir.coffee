@@ -1097,17 +1097,18 @@ model = (spec={}, that={}) ->
         }
 
     that.init = (params) ->
-        spec.id = params.id ? 'string_id'
-        spec.url = params.url
+        new_spec = _.clone spec
+        new_spec.id = params.id ? 'string_id'
+        new_spec.url = params.url
 
-        if spec.url.indexOf('://') == -1
-            spec.url = spec.base_url + spec.url
-        if spec.url[spec.url.length-1] != '/'
-            spec.url += '/'
+        if new_spec.url.indexOf('://') == -1
+            new_spec.url = new_spec.base_url + new_spec.url
+        if new_spec.url[new_spec.url.length-1] != '/'
+            new_spec.url += '/'
 
         created_models.add that
 
-        return model spec
+        return model new_spec
 
     makeobj = (raw_object, dirty=false) ->
         ret = {}
