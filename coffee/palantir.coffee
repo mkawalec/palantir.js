@@ -668,7 +668,6 @@ validators = (spec={}, that={}) ->
 
             _.extend(_methods, extend_with)
 
-
         return _that
     )()
 
@@ -1002,9 +1001,7 @@ model = (spec={}, that={}) ->
         return _that
     )()
 
-    that.get = (callback=( -> ), params, error_callback=( -> )) ->
-        params = params ? {}
-
+    that.get = (callback=( -> ), params={}, error_callback=( -> )) ->
         url = spec.url
         if params.id?
             url += params.id
