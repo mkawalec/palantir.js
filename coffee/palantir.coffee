@@ -957,7 +957,6 @@ validators = (spec={}, that={}) ->
 
         return methods
 
-
     test = (fields, current_id) ->
         errors = []
         for id,methods of fields
