@@ -363,24 +363,25 @@ template = (spec={}, that={}) ->
 
     that.bind = (where, string_id) ->
         for element in where.find('[data-click]')
-            $(element).on 'click', (e) ->
-                target = $(e.target)
-                _helpers.delay ->
-                    if target.attr('data-prevent_default') == 'true'
-                        return
+            ((element) ->
+                $(element).on 'click', (e) ->
+                    _helpers.delay ->
+                        if element.attr('data-prevent_default') == 'true'
+                            return
 
-                    data = {}
-                    if target.attr('data-silent') != 'false'
-                        data.silent = true
-                    if string_id?
-                        data.string_id = string_id
-                    if not string_id? and target.attr('data-string_id')?
-                        data.string_id = target.attr 'data-string_id'
+                        data = {}
+                        if element.attr('data-silent') != 'false'
+                            data.silent = true
+                        if string_id?
+                            data.string_id = string_id
+                        if not string_id? and element.attr('data-string_id')?
+                            data.string_id = element.attr 'data-string_id'
 
-                    if data.silent != true
-                        _validators.hide()
+                        if data.silent != true
+                            _validators.hide()
 
-                    _libs.goto target.attr('data-click'), data
+                        _libs.goto element.attr('data-click'), data
+            )($(element))
 
         for element in $(where).find('[data-source]')
             ((element) ->
