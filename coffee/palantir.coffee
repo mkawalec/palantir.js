@@ -149,6 +149,35 @@ helpers = singleton((spec={}) ->
     that.delay = (fn) ->
         setTimeout(fn, 0)
 
+    that.parse_methods = (to_parse) ->
+        if not to_parse?
+            return []
+
+        parsed = []
+
+        for validator in to_parse.split(';')
+            split = validator.split('(')
+            name = $.trim split[0]
+
+            # The dictionary on position 1 holds named params
+            ret_params = [{}]
+
+            if split.length > 1
+                split[1] = $.trim split[1]
+                params = split[1].slice(0, split[1].length-1)
+                for param in params.split(',')
+                    param = ($.trim(param)).split('=')
+                    if param.length > 1
+                        tmp = {}
+                        tmp[param[0]] = param[1]
+                        _.extend ret_params[0], tmp
+                    else
+                        ret_params.push(param[0])
+
+            parsed.push {method: name, params: ret_params}
+
+        return parsed
+
     return that
 )
 
@@ -922,33 +951,12 @@ validators = (spec={}, that={}) ->
     __ = p.gettext.gettext
 
     parse_validators = (field, to_parse) ->
-        if not to_parse?
-            return []
+        methods = _helpers.parse_methods to_parse
+        for method in methods
+            method.params.unshift field
 
-        parsed = []
+        return methods
 
-        for validator in to_parse.split(';')
-            split = validator.split('(')
-            name = $.trim split[0]
-
-            # The dictionary on position 1 holds named params
-            ret_params = [field, {}]
-
-            if split.length > 1
-                split[1] = $.trim split[1]
-                params = split[1].slice(0, split[1].length-1)
-                for param in params.split(',')
-                    param = ($.trim(param)).split('=')
-                    if param.length > 1
-                        tmp = {}
-                        tmp[param[0]] = param[1]
-                        _.extend ret_params[1], tmp
-                    else
-                        ret_params.push(param[0])
-
-            parsed.push {method: name, params: ret_params}
-
-        return parsed
 
     test = (fields, current_id) ->
         errors = []
