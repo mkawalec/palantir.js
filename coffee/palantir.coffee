@@ -374,6 +374,8 @@ template = (spec={}, that={}) ->
                         data.silent = true
                     if string_id?
                         data.string_id = string_id
+                    if not string_id? and target.attr('data-string_id')?
+                        data.string_id = target.attr 'data-string_id'
 
                     if data.silent != true
                         _validators.hide()
@@ -507,8 +509,9 @@ template = (spec={}, that={}) ->
                         editor.setContent data[key]
         ), {id: string_id}
 
-    that.open = (name, context, params={}) ->
+    that.open = (name, context={}, params={}, callback=( -> )) ->
         params.action = params.action ? 'add'
+        context = _.extend spec, context
 
         _libs.open {
             url: template_url + name 
@@ -523,6 +526,7 @@ template = (spec={}, that={}) ->
                     that.bind params.where, params.string_id
 
                 _validators.discover params.where
+                callback()
             tout: 3600*48
         }
 
