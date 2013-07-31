@@ -403,8 +403,6 @@ template = (spec={}, that={}) ->
                             data.silent = true
                         if string_id?
                             data.string_id = string_id
-                        if not string_id? and element.attr('data-string_id')?
-                            data.string_id = element.attr 'data-string_id'
 
                         if data.silent != true
                             _validators.hide()
