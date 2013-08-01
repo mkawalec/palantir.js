@@ -995,16 +995,19 @@ validators = (spec={}, that={}) ->
         for parser in methods.parsers
             validators_db.apply parser.method, parser.params
 
+        errors_added = []
         for validator in methods.validators
             err = validators_db.apply validator.method, validator.params
             if err? and err.length > 0
                 if not current_id? or current_id == id
                     $(validator.params[0]).addClass 'validation-error'
+                    errors_added.push validator.params[0]
                 errors.push {
                     field: id
                     errors: err
                 }
-            else if not current_id? or current_id == id
+            else if (not current_id? or current_id == id) and \
+                     not _.contains(errors_added, validator.params[0])
                 $(validator.params[0]).removeClass 'validation-error'
 
         return errors
