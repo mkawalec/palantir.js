@@ -886,6 +886,14 @@ validators = (spec={}, that={}) ->
         if managed[form_id]?
             field_obj = managed[form_id][field_id]
             if field_obj?
+                # We don't want to append the same validator multiple
+                # times
+                field_validators = _.reject field_validators, (item) ->
+                    for validator in field_obj.validators
+                        if _.isEqual(validator, item)
+                                return true
+                    return false
+
                 field_obj.validators = field_obj.validators.concat(field_validators)
             else
                 managed[form_id][field_id] = {
