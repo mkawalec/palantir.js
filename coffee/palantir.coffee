@@ -1457,6 +1457,8 @@ palantir = singleton((spec={}) ->
             pull_params location.hash.slice(1)
 
         params = _.extend more_params, params
+        delete params.silent
+
         route = '#' + that.helpers.add_params route, params
         window.location.hash = route
 
