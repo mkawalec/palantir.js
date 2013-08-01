@@ -265,7 +265,6 @@ test_display_method = (spec={}, that={}) ->
         return
     
     that.create = (errors, current_id) ->
-        console.log 'errors', errors
         return
 
     return that
@@ -290,5 +289,19 @@ asyncTest 'Field failing test', ->
             test_model.submit ->
                 start()
                 ok true
+
+asyncTest 'refresh test', ->
+    p = palantir(spec)
+
+    func = p.route 'test0', (params) ->
+        start()
+        ok true
+        if not (params.blah? and params.blah == 'test')
+            stop()
+
+    p.goto p.route_for func
+    p.refresh()
+    p.helpers.delay ->
+        p.refresh({blah: 'test'})
 
 

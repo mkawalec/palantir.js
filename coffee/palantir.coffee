@@ -1446,6 +1446,17 @@ palantir = singleton((spec={}) ->
             return matching[0].route
         return undefined
 
+    that.refresh = (params) ->
+        if not params?
+            hashchange()
+
+        [route, more_params] = that.helpers.\
+            pull_params location.hash.slice(1)
+
+        params = _.extend more_params, params
+        route = '#' + that.helpers.add_params route, params
+        window.location.hash = route
+
     that.goto = (route, params...) ->
         if params.length == 0
             params.push {}
