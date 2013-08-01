@@ -1169,6 +1169,10 @@ model = (spec={}, that={}) ->
             get: -> dirty
             set: (value) -> dirty = value
         })
+        Object.defineProperty(ret, '__deleted', {
+            get: -> deleted
+            set: (value) -> deleted = value
+        })
 
         ret['__submit'] = (callback=( -> ), force=false) ->
             if ret.__dirty == false and not force
@@ -1194,7 +1198,7 @@ model = (spec={}, that={}) ->
                 url = spec.url
 
                 if req_type == 'PUT'
-                    url += ret.string_id
+                    url += ret[spec.id]
 
                 p.open {
                     url: url
@@ -1213,33 +1217,36 @@ model = (spec={}, that={}) ->
                     error: validate_failed(callback)
                 }
 
-        ret['__deleted'] = -> deleted
-
         ret['__delete'] = (callback=( -> )) ->
             check_deletion(ret)
 
             # Do not delete on a server
             # if the object hasn't been persisted yet
-            if not ret.string_id?
+            if not ret[spec.id]?
+                delete_object ret
                 return
 
             p.open {
-                url: spec.url + ret.string_id
+                url: spec.url + ret[spec.id]
                 type: 'DELETE'
                 success: (data) ->
-                    for el,i in managed
-                        if el == ret
-                            # Splice is not used for performance reasons
-                            managed[i] = undefined
-                            break
-
-                    ret = undefined
-                    deleted = true
+                    delete_object ret
                     callback()
                 error: callback
             }
 
         return ret
+
+    delete_object = (object) ->
+        object.__deleted = true
+
+        for el,i in managed
+            if el == object
+                # Splice is not used for performance reasons
+                managed[i] = undefined
+                break
+
+        object = undefined
 
     validate_failed = (callback=( -> )) ->
         (data) ->
@@ -1259,7 +1266,7 @@ model = (spec={}, that={}) ->
             # accept a list of fields & validators
 
     check_deletion = (obj) ->
-        if not obj? or obj.__deleted() == true
+        if not obj? or obj.__deleted == true
             throw { 
                 type: 'DeletedError'
                 message: 'The object doesn\'t exist any more'
