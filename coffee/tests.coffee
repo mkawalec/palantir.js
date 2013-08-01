@@ -294,13 +294,25 @@ asyncTest 'refresh test', ->
     p = palantir(spec)
 
     func = p.route 'test0', (params) ->
-        start()
+        if QUnit.config.semaphore > 0
+            start()
         ok true
+        
+        if params.test?
+            if params.test == 'right'
+                ok true
+            else
+                ok false
+
         if not (params.blah? and params.blah == 'test')
             stop()
 
+
     p.goto p.route_for func
     p.refresh()
+    p.helpers.delay ->
+        p.goto '__refresh?test=right'
+
     p.helpers.delay ->
         p.refresh({blah: 'test'})
 

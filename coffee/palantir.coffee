@@ -1469,11 +1469,12 @@ palantir = singleton((spec={}) ->
 
         params[0] = _.extend more_params, params[0]    
 
-        if params.length > 0 and params[0].silent == true
-            res = _.where(routes, {route: route})
-            for matching in res
-                matching.fn params[0]
-            return
+        if (params.length > 0 and params[0].silent == true) or \
+           route.slice(0,9) == that.route_for(that.refresh)
+                res = _.where(routes, {route: route})
+                for matching in res
+                    matching.fn params[0]
+                return
 
         route = '#'+that.helpers.add_params route, params
         window.location.hash = route
