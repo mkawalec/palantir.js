@@ -785,7 +785,7 @@ validators = (spec={}, that={}) ->
 
                 for arg in args
                     if value == arg
-                        return [__("The value must be different than \'#{ value }\'")]
+                        return [__("The value must be different then \'#{ value }\'")]
                 return null
 
             same_as: (object, kwargs, args...) ->
