@@ -1437,13 +1437,15 @@ palantir = singleton((spec={}) ->
             if _action == '_testing' then return fn
             fn.apply(null, arguments)
 
-    that.route_for = (fn) ->
+    that.route_for = (fn, params={}) ->
         fn = fn('_testing')
         matching = _.filter routes, (item) ->
             if item.fn == fn then true else false
 
+        prefix = if params.external then location.href.split('#')+'#' else ''
+
         if matching.length > 0
-            return matching[0].route
+            return prefix + matching[0].route
         return undefined
 
     that.refresh = (params) ->
