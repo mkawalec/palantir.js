@@ -1438,6 +1438,7 @@ palantir = singleton((spec={}) ->
             fn.apply(null, arguments)
 
     that.route_for = (fn, params={}) ->
+        #TODO: This is not a good way of figuring out a right function!
         fn = fn('_testing')
         matching = _.filter routes, (item) ->
             if item.fn == fn then true else false
@@ -1448,7 +1449,7 @@ palantir = singleton((spec={}) ->
             return prefix + matching[0].route
         return undefined
 
-    that.refresh = (params) ->
+    that.refresh = that.route '__refresh', (params) ->
         if not params?
             hashchange()
 
