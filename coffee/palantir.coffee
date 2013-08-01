@@ -731,7 +731,7 @@ validators = (spec={}, that={}) ->
             email: (object, kwargs, args...) ->
                 # Checks if the value of a field is an email
 
-                regex = kwargs.regex if kwargs.regex? else \
+                regex = kwargs.regex ? \
                     /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$/
                 if not $.trim(object.value).match regex
                     return [__('The email you entered is incorrect')]
@@ -1409,6 +1409,14 @@ palantir = singleton((spec={}) ->
         return undefined
 
     that.goto = (route, params...) ->
+        if params.length == 0
+            params.push {}
+
+        [route, more_params] = that.helpers.\
+            pull_params route
+
+        params[0] = _.extend more_params, params[0]    
+
         if params.length > 0 and params[0].silent == true
             res = _.where(routes, {route: route})
             for matching in res
