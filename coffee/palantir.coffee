@@ -1218,6 +1218,11 @@ model = (spec={}, that={}) ->
         ret['__delete'] = (callback=( -> )) ->
             check_deletion(ret)
 
+            # Do not delete on a server
+            # if the object hasn't been persisted yet
+            if not ret.string_id?
+                return
+
             p.open {
                 url: spec.url + ret.string_id
                 type: 'DELETE'
