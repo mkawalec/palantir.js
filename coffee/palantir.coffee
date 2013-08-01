@@ -390,6 +390,19 @@ template = (spec={}, that={}) ->
 
         return body
 
+    parse_binds = (element) ->
+        data = {}
+        form = element.closest 'form'
+
+        if form.length > 0
+            for el in form.find '[data-binding]'
+                el = $(el)
+                value = el[0].value ? el.text()
+
+                data[el.attr 'data-binding' ] = value
+
+        return data
+
     that.bind = (where, string_id) ->
         for element in where.find('[data-click]')
             ((element) ->
@@ -398,7 +411,8 @@ template = (spec={}, that={}) ->
                         if element.attr('data-prevent_default') == 'true'
                             return
 
-                        data = {}
+                        data = parse_binds element
+
                         if element.attr('data-silent') != 'false'
                             data.silent = true
                         if string_id?
@@ -406,6 +420,7 @@ template = (spec={}, that={}) ->
 
                         if data.silent != true
                             _validators.hide()
+                            
 
                         _libs.goto element.attr('data-click'), data
             )($(element))
