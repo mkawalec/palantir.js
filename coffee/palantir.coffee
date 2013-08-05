@@ -222,6 +222,7 @@ gettext = singleton((spec={}, that={}) ->
             palantir_timeout: 3600*48
         }
 
+    spec = _.extend spec, {__inner: true}
     inheriter = _.partial init, gettext, that, spec
     p = inheriter palantir
 
@@ -275,6 +276,7 @@ notifier = (spec={}, that={}) ->
         placeholder.append alert
         alert.show 'slide'
 
+    spec = _.extend spec, {__inner: true}
     inheriter = _.partial init, notifier, that, spec
     p = inheriter(palantir)
     __ = p.gettext.gettext
@@ -578,6 +580,7 @@ template = (spec={}, that={}) ->
 
     that.extend_renderers spec.tag_renderers
     
+    spec = _.extend spec, {__inner: true}
     inheriter = _.partial init, template, that, spec
     _.extend _libs, inheriter palantir
     _helpers = inheriter helpers
@@ -966,6 +969,7 @@ validators = (spec={}, that={}) ->
         for name,method of display_methods.all()
             method.hide()
 
+    spec = _.extend spec, {__inner: true}
     inheriter = _.partial init, validators, that, spec
     p = inheriter palantir
 
@@ -1293,6 +1297,7 @@ model = (spec={}, that={}) ->
 
         return data
 
+    spec = _.extend spec, {__inner: true}
     inheriter = _.partial init, model, that, spec
     p = inheriter palantir
     _helpers = inheriter helpers
@@ -1300,9 +1305,7 @@ model = (spec={}, that={}) ->
 
     return that
 
-palantir = singleton((spec={}) ->
-    that = {}
-
+palantir = (spec={}, that={}) ->
     if spec[0]?
         spec = spec[0]
 
@@ -1328,7 +1331,18 @@ palantir = singleton((spec={}) ->
 
     spec.placeholder = spec.placeholder ? $('body')
 
-    routes = []
+    routes = (singleton ->
+        _routes = []
+        _that = {}
+
+        _that.push = (elem) ->
+            _routes.push elem
+
+        _that.all = ->
+            return _routes
+
+        return _that
+    )()
 
     wait_time = spec.wait_time ? 100
 
@@ -1440,7 +1454,7 @@ palantir = singleton((spec={}) ->
     that.route_for = (fn, params={}) ->
         #TODO: This is not a good way of figuring out a right function!
         fn = fn('_testing')
-        matching = _.filter routes, (item) ->
+        matching = _.filter routes.all(), (item) ->
             if item.fn == fn then true else false
 
         prefix = if params.external then location.href.split('#')+'#' else ''
@@ -1477,36 +1491,56 @@ palantir = singleton((spec={}) ->
 
         if (params.length > 0 and params[0].silent == true) or \
            route.slice(0,9) == that.route_for(that.refresh)
-                res = _.where(routes, {route: route})
+                res = _.where(routes.all(), {route: route})
                 for matching in res
                     matching.fn params[0]
                 return
 
         route = '#'+that.helpers.add_params route, params
         window.location.hash = route
+
+    initiated_routes = (singleton ->
+        _that = {}
+        _routes = []
+
+        _that.push = (route) ->
+            _routes.push route
+
+        _that.contains = (route) ->
+            return _.contains _routes, route
+
+        return _that
+    )()
         
     hashchange = (e) ->
-        e?.preventDefault()
-        e?.stopPropagation()
+        e?.preventDefault?()
+        e?.stopPropagation?()
 
         [route, params] = that.helpers.\
             pull_params location.hash.slice(1)
-        res = _.where(routes, {route: route})
+        res = _.where(routes.all(), {route: route})
 
         for matching in res
-            matching.fn(params)
+            if e == 'init'
+                if not initiated_routes.contains(matching.route)
+                    matching.fn(params)
+                    initiated_routes.push matching.route
+            else
+                metching.fn(params)
 
     # Constructor
     setTimeout((() ->
+        if spec.__inner? and spec.__inner == true
+            return
+
         that.notifier.extend_code_messages spec.code_messages
         that.notifier.extend_messages spec.messages
 
+        $(window).off 'hashchange'
         $(window).on 'hashchange', (e) ->
-            ((routes) ->
-                hashchange(e)
-            )(routes)
+            hashchange(e)
 
-        hashchange()
+        hashchange('init')
 
         $('body').on 'click', 'a[data-route]', (e) ->
             e.preventDefault()
@@ -1524,7 +1558,6 @@ palantir = singleton((spec={}) ->
     that.validators = inheriter validators
 
     return that
-)
 
 # Exports to global scope
 window.palantir = palantir
