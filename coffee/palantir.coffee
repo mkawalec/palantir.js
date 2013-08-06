@@ -1203,9 +1203,12 @@ model = (spec={}, that={}) ->
 
                 # But also persist all 'non-special' properties of the
                 # data object
-                for key,value of _.filter(ret, 
-                   (el, key) -> key.slice(0, 2) != '__')
-                    data[key] = value
+                res = _.foldl ret, ((memo, value, key) ->
+                    if key.slice(0, 2) != '__' and typeof value != 'function'
+                        memo[key] = value
+                    return memo
+                ), {}
+                data = _.extend data, res
 
                 data = {data: JSON.stringify data}
 
