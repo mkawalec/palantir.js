@@ -1475,9 +1475,10 @@ palantir = (spec={}, that={}) ->
 
         params = _.extend more_params, params
 
-        if params.silent_refresh? and params.silent_refresh == 'true'
+        if params.silent_refresh? and params.silent_refresh.toString() == 'true'
             delete params.silent_refresh
-            that.goto route, params
+            params.silent = true
+            return that.goto route, params
 
         delete params.silent
         route = '#' + that.helpers.add_params route, params
