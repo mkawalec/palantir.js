@@ -1526,7 +1526,7 @@ palantir = (spec={}, that={}) ->
                     matching.fn(params)
                     initiated_routes.push matching.route
             else
-                metching.fn(params)
+                matching.fn(params)
 
     # Constructor
     setTimeout((() ->
