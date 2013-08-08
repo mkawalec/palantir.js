@@ -562,7 +562,10 @@ template = (spec={}, that={}) ->
             url: template_url + name 
             success: (data) ->
                 data = that.parse data, context
-                params.where.html data
+                if params.append? and params.append == true
+                    params.where.append data
+                else
+                    params.where.html data
 
                 if params.action == 'edit'
                     that.bind params.where, params.string_id
@@ -1500,6 +1503,8 @@ palantir = (spec={}, that={}) ->
                     matching.fn params[0]
                 return
 
+        # The force is a special parameter that is always internal
+        delete params.force
         route = '#'+that.helpers.add_params route, params
         window.location.hash = route
 
