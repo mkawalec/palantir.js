@@ -408,7 +408,8 @@ template = (spec={}, that={}) ->
     that.bind = (where, string_id) ->
         for element in where.find('[data-click]')
             ((element) ->
-                $(element).on 'click', (e) ->
+                element.off 'click'
+                element.on 'click', (e) ->
                     _helpers.delay ->
                         if element.attr('data-prevent_default') == 'true'
                             return
@@ -1175,7 +1176,8 @@ model = (spec={}, that={}) ->
                             }
                         check_deletion(ret)
 
-                        ret.__dirty = true
+                        if new_value != set_value
+                            ret.__dirty = true
                         set_value = new_value
                     get: ->
                         check_deletion(ret)
