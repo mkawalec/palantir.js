@@ -94,15 +94,24 @@ helpers = singleton((spec={}) ->
         return ret.join ''
 
     that.deep_copy = (obj) ->
-        if Object.prototype.toString.call(obj) == '[object Array]'
+        if $.isArray(obj)
             ret = []
             for el in obj
                 ret.push(that.deep_copy(el))
             return ret
-        else if typeof obj == 'object' and obj != null
+        else if $.isPlainObject(obj)
             ret = {}
-            for param, value of obj
-                ret[param] = that.deep_copy(value)
+            keys = _.keys(obj)
+            if obj.__keys?
+                keys = keys.concat obj.__keys
+
+            _.each keys, (key) ->
+                value = obj[key]
+                if typeof value == 'function'
+                    ret[key] = value
+                else
+                    ret[key] = that.deep_copy value
+
             return ret
 
         return obj
@@ -558,11 +567,12 @@ template = (spec={}, that={}) ->
     that.open = (name, context={}, params={}, callback=( -> )) ->
         params.action = params.action ? 'add'
         context = _.extend spec, context
+        ctx = _helpers.deep_copy context
 
         _libs.open {
             url: template_url + name 
             success: (data) ->
-                data = that.parse data, context
+                data = that.parse data, ctx
                 if params.append? and params.append == true
                     params.where.append data
                 else
@@ -621,13 +631,13 @@ cache = singleton((spec={}) ->
             if has_timeout _cache[key]
                 that.delete key
             else if _cache[key] != undefined
-                return _helpers.deep_copy _cache[key].payload
+                return _cache[key].payload
         return undefined
 
     that.set = (key, value, new_timeout=timeout) ->
         payload = {
             expires: (new Date()).getTime()+1000*new_timeout
-            payload: value
+            payload: _helpers.deep_copy value
         }
         _cache[key] = payload
         dirty = true
@@ -639,7 +649,8 @@ cache = singleton((spec={}) ->
         return undefined
 
     that.genkey = (data) ->
-        to_join = ["type:#{ data.type }", "url:#{ data.url }",
+        # Generates keys for internal-use cache
+        to_join = ["__internal", "type:#{ data.type }", "url:#{ data.url }",
             "data: #{ JSON.stringify(data.data) }"]
         return to_join.join ';'
 
@@ -1136,6 +1147,7 @@ model = (spec={}, that={}) ->
         p.open {
             url: spec.url + 'spec/'
             success: (data) ->
+                console.log 'data', data
                 data_def = normalize data.data
                 callback _.keys data.data
         }
@@ -1192,6 +1204,9 @@ model = (spec={}, that={}) ->
         Object.defineProperty(ret, '__deleted', {
             get: -> deleted
             set: (value) -> deleted = value
+        })
+        Object.defineProperty(ret, '__keys', {
+            get: -> _.keys data_def
         })
 
         ret['__submit'] = (callback=( -> ), force=false) ->
@@ -1352,7 +1367,7 @@ palantir = (spec={}, that={}) ->
         return _that
     )()
 
-    wait_time = spec.wait_time ? 100
+    wait_time = spec.wait_time ? 70
 
     pop_storage = ->
         if running_requests < max_requests
@@ -1385,19 +1400,18 @@ palantir = (spec={}, that={}) ->
             return data.success cached
 
         _cache.set(key, 'waiting', 15)
-
         return wrap_request(fn, data)()
 
-    save_cache = (fn, cache_key, new_timeout) ->
+    save_cache = (req_data, cache_key, fn) ->
                     (data, text_status, request) ->
                         if request? and request.getResponseHeader? and spec.expires != false
                             new_timeout = Date.parse(request.getResponseHeader('Expires'))
 
                         if not data.req_time?
                             if typeof data == 'string'
-                                _cache.set(cache_key, { data: data }, new_timeout)
+                                _cache.set(cache_key, { data: data }, req_data.planatir_timeout)
                             else
-                                _cache.set(cache_key, data, new_timeout)
+                                _cache.set(cache_key, data, req_data.palantir_timeout)
 
                         fn data
     
@@ -1420,7 +1434,7 @@ palantir = (spec={}, that={}) ->
             cached = _cache.get(key)
 
             if not cached? or cached != 'waiting'
-                return fn.apply(null, args)
+                return fn.apply(args[1].success, args)
             if cached == 'waiting'
                 setTimeout(promise(fn, args, key), wait_time)
 
@@ -1428,22 +1442,25 @@ palantir = (spec={}, that={}) ->
         if not req_data.type?
             req_data.type = 'GET'
 
+        req_data.palantir_timeout = req_data.palantir_timeout ? 300
+
         key = _cache.genkey req_data
         args = [$.ajax, req_data, req_data.tout, req_data.caching]
 
         req_data.error = on_error(req_data.success, req_data.error, key)
         if req_data.type == 'GET' and req_data.palantir_cache != false
-            req_data.success = save_cache(req_data.success, key, 
-                req_data.palantir_timeout)
+
+            req_data.success = save_cache(req_data, key, 
+                req_data.success)
             if running_requests >= max_requests
-                return connection_storage.push promise(cached_memoize, args,key)
+                return connection_storage.push promise(cached_memoize, args, key)
             else
                 return promise(cached_memoize, args, key)()
 
-        if running_requests >= max_requests    
+        else if running_requests >= max_requests    
             return connection_storage.push wrap_request $.ajax, req_data
 
-        if req_data.type != 'GET'
+        else if req_data.type != 'GET'
             _cache.delall req_data.url
 
         (wrap_request $.ajax, req_data)()
