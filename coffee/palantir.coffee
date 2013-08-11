@@ -1147,7 +1147,6 @@ model = (spec={}, that={}) ->
         p.open {
             url: spec.url + 'spec/'
             success: (data) ->
-                console.log 'data', data
                 data_def = normalize data.data
                 callback _.keys data.data
         }
@@ -1564,6 +1563,9 @@ palantir = (spec={}, that={}) ->
         that.notifier.extend_code_messages spec.code_messages
         that.notifier.extend_messages spec.messages
 
+        # We only want the last palantir instance to be in charge
+        # of the hashchange event, as routes are pulled from a singleton
+        # function
         $(window).off 'hashchange'
         $(window).on 'hashchange', (e) ->
             hashchange(e)
