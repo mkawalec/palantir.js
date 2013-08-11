@@ -172,10 +172,14 @@ asyncTest 'Test object deletion by the Model', ->
                     ok e.type == 'DeletedError'
 
 asyncTest 'Test routes', ->
+    console.log spec
     p = palantir(_.extend spec, {blah: 'bam'})
+    console.log 'test init'
 
     p.helpers.delay ->
+        console.log 'delay'
         p.route 'test_route', (params) ->
+            console.log 'starting'
             if QUnit.config.semaphore > 0
                 start()
             ok true

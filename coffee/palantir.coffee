@@ -150,7 +150,7 @@ helpers = singleton((spec={}) ->
                     route += '?'
                 else
                     route += '&'
-                route += "#{ encodeURIComponent(key) }=#{ encodeURIComponent(value) }"
+                route += "#{ encodeURIComponent key }=#{ encodeURIComponent value.toString() }"
                 i += 1
 
         return route
@@ -1345,6 +1345,7 @@ palantir = (spec={}, that={}) ->
 
     _that = {}
     _.extend _that, helpers(spec)
+    spec = _that.deep_copy spec
 
     # TODO: Make it switchable by spec
     connection_storage = stack()
@@ -1557,7 +1558,7 @@ palantir = (spec={}, that={}) ->
 
     # Constructor
     setTimeout((() ->
-        if spec.__inner? and spec.__inner == true
+        if spec.__inner == true
             return
 
         that.notifier.extend_code_messages spec.code_messages
