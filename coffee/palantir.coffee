@@ -585,7 +585,7 @@ template = (spec={}, that={}) ->
                     that.bind params.where, params.string_id
 
                 _validators.discover params.where
-                callback()
+                callback.call ctx
             tout: 3600*48
         }
 
