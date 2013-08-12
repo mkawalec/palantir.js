@@ -1152,7 +1152,7 @@ model = (spec={}, that={}) ->
         }
 
     that.init = (params) ->
-        new_spec = _.clone spec
+        new_spec = _helpers.deep_copy spec
         new_spec.id = params.id ? 'string_id'
         new_spec.url = params.url
 
@@ -1205,7 +1205,7 @@ model = (spec={}, that={}) ->
             set: (value) -> deleted = value
         })
         Object.defineProperty(ret, '__keys', {
-            get: -> _.keys data_def
+            get: -> _.keys(data_def).concat spec.id
         })
 
         ret['__submit'] = (callback=( -> ), force=false) ->
