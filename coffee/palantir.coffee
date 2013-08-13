@@ -573,16 +573,16 @@ template = (spec={}, that={}) ->
             url: template_url + name 
             success: (data) ->
                 data = that.parse data, ctx
-                if params.append? and params.append == true
+                if params.append == true
                     params.where.append data
+                else if params.prepend == true
+                    params.where.prepend data
                 else
                     params.where.html data
 
+                that.bind params.where, params.string_id
                 if params.action == 'edit'
-                    that.bind params.where, params.string_id
                     fill params.where, params.url, params.string_id
-                else
-                    that.bind params.where, params.string_id
 
                 _validators.discover params.where
                 callback.call ctx
