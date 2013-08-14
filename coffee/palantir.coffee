@@ -414,28 +414,9 @@ template = (spec={}, that={}) ->
 
         return data
 
-    that.bind = (where, string_id) ->
-        for element in where.find('[data-click]')
-            ((element) ->
-                element.off 'click'
-                element.on 'click', (e) ->
-                    _helpers.delay ->
-                        if element.attr('data-prevent_default') == 'true'
-                            return
-
-                        data = parse_binds element
-
-                        if element.attr('data-silent') != 'false'
-                            data.silent = true
-                        if string_id?
-                            data.string_id = string_id
-
-                        if data.silent != true
-                            _validators.hide()
-                            
-
-                        _libs.goto element.attr('data-click'), data
-            )($(element))
+    that.bind = (where) ->
+        $('body').off 'click', '[data-click]', process_click
+        $('body').on 'click', '[data-click]', process_click
 
         for element in $(where).find('[data-source]')
             ((element) ->
@@ -457,6 +438,23 @@ template = (spec={}, that={}) ->
                 element.attr('data-validators'))
             element.attr('data-validators', '')
             $(inner_area).css 'min-height', '320px'
+
+    process_click = (e) ->
+        element = $(e.target).closest('[data-click]')
+        _helpers.delay ->
+            if element.attr('data-prevent_default') == 'true'
+                return
+
+            data = parse_binds element
+
+            if element.attr('data-silent') != 'false'
+                data.silent = true
+
+            if data.silent != true
+                _validators.hide()
+
+            _libs.goto element.attr('data-click'), data
+
            
 
     that.set_details = (element, caching=true, actions) ->
@@ -566,26 +564,39 @@ template = (spec={}, that={}) ->
 
     that.open = (name, context={}, params={}, callback=( -> )) ->
         params.action = params.action ? 'add'
-        context = _.extend spec, context
+        context = _.extend(_.extend(params, spec), context)
         ctx = _helpers.deep_copy context
 
         _libs.open {
             url: template_url + name 
             success: (data) ->
                 data = that.parse data, ctx
-                if params.append == true
-                    params.where.append data
-                else if params.prepend == true
-                    params.where.prepend data
-                else
-                    params.where.html data
 
-                that.bind params.where, params.string_id
-                if params.action == 'edit'
-                    fill params.where, params.url, params.string_id
+                if params.where?
+                    if params.add_action?
+                        params.where[params.add_action] data
+                    else if params.append == true
+                        params.where.append data
+                    else if params.prepend == true
+                        params.where.prepend data
+                    else
+                        params.where.html data
 
-                _validators.discover params.where
-                callback.call ctx
+                    if params.string_id?
+                        # Passing string_id as parameter
+                        # is deprecated and not suggested
+                        _.each params.where.find('[data-click]'), (el) ->
+                            route = _helpers.add_params $(el).attr('data-click'),
+                                {string_id: params.string_id}
+                            $(el).attr('data-click', route)
+
+                    that.bind params.where
+
+                    if params.action == 'edit'
+                        fill params.where, params.url, params.string_id
+
+                    _validators.discover params.where
+                callback.call ctx, data
             tout: 3600*48
         }
 
@@ -758,7 +769,7 @@ validators = (spec={}, that={}) ->
                 if length > kwargs.max
                     errors.push(__("The input of length ") + length + \
                         __(' you entered is too long. The maximum length is ')+ \
-                        kwargs.min )
+                        kwargs.max )
                 return errors
 
             email: (object, kwargs, args...) ->
