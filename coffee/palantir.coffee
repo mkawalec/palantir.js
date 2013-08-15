@@ -415,8 +415,6 @@ template = (spec={}, that={}) ->
         return data
 
     that.bind = (where) ->
-        $('body').off 'click', '[data-click]', process_click
-        $('body').on 'click', '[data-click]', process_click
 
         for element in $(where).find('[data-source]')
             ((element) ->
@@ -439,7 +437,7 @@ template = (spec={}, that={}) ->
             element.attr('data-validators', '')
             $(inner_area).css 'min-height', '320px'
 
-    process_click = (e) ->
+    that.process_click = (e) ->
         element = $(e.target).closest('[data-click]')
         _helpers.delay ->
             if element.attr('data-prevent_default') == 'true'
@@ -454,8 +452,6 @@ template = (spec={}, that={}) ->
                 _validators.hide()
 
             _libs.goto element.attr('data-click'), data
-
-           
 
     that.set_details = (element, caching=true, actions) ->
         _libs.open {
@@ -1538,9 +1534,21 @@ palantir = (spec={}, that={}) ->
         route = '#'+that.helpers.add_params route, params
         window.location.hash = route
 
+    inheriter = _.partial init, palantir, that, spec
+    _cache = inheriter(cache)
+
+    that.templates = inheriter template
+    that.notifier = inheriter notifier
+    that.helpers = inheriter helpers
+    that.gettext = inheriter gettext
+    that.model = inheriter model
+    that.validators = inheriter validators
+
     initiated_routes = (singleton ->
         _that = {}
         _routes = []
+
+        $('body').on 'click', '[data-click]', that.templates.process_click
 
         _that.push = (route) ->
             _routes.push route
@@ -1588,16 +1596,6 @@ palantir = (spec={}, that={}) ->
             e.preventDefault()
             that.goto($(e.target).attr('data-route'), {target: $(e.target).attr 'id'})
     ), 0)
-
-    inheriter = _.partial init, palantir, that, spec
-    _cache = inheriter(cache)
-
-    that.templates = inheriter template
-    that.notifier = inheriter notifier
-    that.helpers = inheriter helpers
-    that.gettext = inheriter gettext
-    that.model = inheriter model
-    that.validators = inheriter validators
 
     return that
 
