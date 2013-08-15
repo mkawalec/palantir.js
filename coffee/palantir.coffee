@@ -1411,7 +1411,7 @@ palantir = (spec={}, that={}) ->
 
     save_cache = (req_data, cache_key, fn) ->
                     (data, text_status, request) ->
-                        if request? and request.getResponseHeader? and spec.expires != false
+                        if request? and request.getResponseHeader? and spec.expires == true
                             new_timeout = Date.parse(request.getResponseHeader('Expires'))
 
                         if not data.req_time?
