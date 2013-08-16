@@ -625,6 +625,7 @@ cache = singleton((spec={}) ->
     # }
     _cache = {}
     dirty = false
+    localstorage_key = spec.localstorage_key ? 'palantir_cache'
 
     has_timeout = (data) ->
         now = (new Date()).getTime()
@@ -662,6 +663,10 @@ cache = singleton((spec={}) ->
         return to_join.join ';'
 
     that.delall = (url) ->
+        # Delete all entries in the cache that relate to the
+        # provided url (either contain the index of items 
+        # represented by the url or contain the item referenced
+        # by the url)
         model_url = url
         if url[url.length-1] != '/'
             index = url.split('').reverse().join('').indexOf('/')
@@ -674,6 +679,12 @@ cache = singleton((spec={}) ->
                 key.indexOf(searched_model) != -1
                     dirty = true
                     delete _cache[key]
+
+    that.clear = ->
+        # Remove EVERYTHING from the cache, including
+        # the localCache store
+        _cache = {}
+        localStorage[localstorage_key] = JSON.stringify _cache
 
     prune_old = (percent=20) ->
         now = (new Date()).getTime()
@@ -690,7 +701,7 @@ cache = singleton((spec={}) ->
     persist = ->
         if dirty == true
             try
-                localStorage['palantir_cache'] = JSON.stringify(_cache)
+                localStorage[localstorage_key] = JSON.stringify _cache
                 dirty = false
             catch e
                 if e.name == 'QuotaExceededError'
@@ -707,8 +718,8 @@ cache = singleton((spec={}) ->
             window.clearInterval backup_job
             return
 
-        if localStorage['palantir_cache']?
-            _cache = JSON.parse(localStorage['palantir_cache'])
+        if localStorage[localstorage_key]?
+            _cache = JSON.parse(localStorage[localstorage_key])
     ), 0)
 
     return that
