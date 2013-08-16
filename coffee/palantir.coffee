@@ -698,19 +698,19 @@ cache = singleton((spec={}) ->
         for i in [0...(keys.length*percent/100)]
             delete _cache[keys[i].key]
 
-    persist = ->
-        if dirty == true
+    that.persist = (force=false)->
+        if dirty == true or force
             try
                 localStorage[localstorage_key] = JSON.stringify _cache
                 dirty = false
             catch e
                 if e.name == 'QuotaExceededError'
                     prune_old()
-                    persist()
+                    that.persist()
 
     # Periodiacally backup to the locaCache to provide
     # data persistence between reloads
-    backup_job = setInterval(persist, 1000)
+    backup_job = setInterval(that.persist, 1000)
 
     # Load from the localStorage and set up stuff
     setTimeout((() ->
