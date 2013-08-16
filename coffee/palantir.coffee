@@ -1549,6 +1549,7 @@ palantir = (spec={}, that={}) ->
     _cache = inheriter(cache)
 
     that.templates = inheriter template
+    that.cache = inheriter cache
     that.notifier = inheriter notifier
     that.helpers = inheriter helpers
     that.gettext = inheriter gettext
