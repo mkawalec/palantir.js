@@ -69,7 +69,8 @@ helpers = singleton((spec={}) ->
     chars = 'abcdefghijklmnoprstuwqxyzABCDEFGHIJKLMNOPRSTUWQXYZ0123456789'
 
     _props = ['id', 'data-source', 'data-actions', 
-        'data-shown_property', 'data-binding']
+        'data-shown_property', 'data-binding',
+        'data-params', 'data-button', 'data-removable']
    
     that.clone = (element) ->
         tag_name = element.tagName.lower()
@@ -403,7 +404,9 @@ template = (spec={}, that={}) ->
 
     parse_binds = (element) ->
         data = {}
-        form = element.closest 'form'
+        form = element.closest('form')
+        if form.length == 0
+            form = element.closest('.form')
 
         if form.length > 0
             for el in form.find '[data-binding]'
@@ -667,13 +670,16 @@ cache = singleton((spec={}) ->
         # provided url (either contain the index of items 
         # represented by the url or contain the item referenced
         # by the url)
+
+        if url.length == 0 then return
+
         model_url = url
         if url[url.length-1] != '/'
             index = url.split('').reverse().join('').indexOf('/')
             model_url = url.slice(0, url.length-index)
 
         searched = "url:#{ url }"
-        searched_model = "url:#{ model_url };"
+        searched_model = "url:#{ model_url }"
         for key,value of _cache
             if key.indexOf(searched) != -1 or \
                 key.indexOf(searched_model) != -1
