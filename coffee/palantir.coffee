@@ -71,6 +71,15 @@ helpers = singleton((spec={}) ->
     _props = ['id', 'data-source', 'data-actions', 
         'data-shown_property', 'data-binding',
         'data-params', 'data-button', 'data-removable']
+
+    that.notify_success = (where, change_color='#bfdd85') ->
+        # Animate background to the green and back to indicate
+        # that an action has succeeded. In its current form
+        # required jqueryui to work
+
+        color = where.css 'background-color'
+        where.animate({'background-color': change_color}).animate({
+            'background-color': color})
    
     that.clone = (element) ->
         tag_name = element.tagName.lower()
@@ -225,7 +234,11 @@ gettext = singleton((spec={}, that={}) ->
             url: "#{ translations_url+to_get }.json"
             async: false
             success: (data) ->
-                translations[to_get] = data
+                try
+                    translations[to_get] = JSON.parse data
+                catch e
+                    if not e instanceof SyntaxError then throw e
+                    translations[to_get] = data
             error: (data) ->
                 if data.status == 404
                     translations[to_get] = null
@@ -260,19 +273,18 @@ notifier = (spec={}, that={}) ->
         messages.extend_messages data
           
     show_message = (fn, key) ->
+        # We don't want to show the 'unspecified' errors,
+        # because we want to hide errors from the users :D
+        if key == 0 then return
+
         alert = $('<div/>', {
             class: "alert alert-#{ fn(key).type }"
         })
 
         close_button = $('<button/>', {
-            class: 'close'
-            'data-dismiss': 'alert'
-            text: 'x'
+            class: 'alert-close'
+            html: $('<i/>', {class: 'alert-close icon-remove'})
         })
-        close_button.on 'click', (e) ->
-            alert.hide 'slide',  ->
-                for el in placeholder.find('.ui-effects-wrapper')
-                    placeholder[0].removeChild el
 
         message_wrapper = $('<div/>', {
             class: 'message_wrapper'
@@ -418,13 +430,10 @@ template = (spec={}, that={}) ->
         return data
 
     that.bind = (where) ->
-
-        for element in $(where).find('[data-source]')
-            ((element) ->
-                if $(element).attr('data-actions')?
-                    actions = JSON.parse $(element).attr('data-actions')
-                that.set_details element, null, actions
-            )(element)
+        _.each $(where).find('[data-source]'), (element) ->
+            if $(element).attr('data-actions')?
+                actions = JSON.parse $(element).attr('data-actions')
+            that.set_details element, null, actions
 
         for element in $(where).find("[data-wysiwyg='true']")
             editor = new nicEditor()
@@ -456,37 +465,43 @@ template = (spec={}, that={}) ->
 
             _libs.goto element.attr('data-click'), data
 
+    set_object = (element, actions, data) ->
+        # Sets the custom tag contents
+        contents = $(element).html()
+        $(element).html('')
+        if contents == 'null'
+            return $(element).html(__ 'No category')
+
+        data_tag = $(element).attr('data-tag')
+        if data_tag?
+            if tag_renderers.get(data_tag)?
+                tag_renderers.get(data_tag) element, data
+            else tag_renderers.get('div') element, data
+        else
+            if not element.tagName?
+                tag_renderers.get('div') element, data, contents
+            else
+                tag_name = element.tagName.lower()
+                if tag_renderers.get(tag_name)?
+                    tag_renderers.get(tag_name) element, data
+                else tag_renderers.get('div') element, data
+
+        if actions? and actions.add
+            _libs.open {
+                url: $(element).attr('data-source') + 'spec/'
+                success: (data) ->
+                    add_element element, data 
+            }
+
     that.set_details = (element, caching=true, actions) ->
+        if not $(element).attr('data-source')? or \
+            $(element).attr('data-source').length == 0
+                set_object element
+
         _libs.open {
             url: $(element).attr('data-source')
             caching: caching
-            success: (data) ->
-                # Remove all children
-                contents = $(element).html()
-                $(element).html('')
-                if contents == 'null'
-                    return $(element).html(__ 'No category')
-
-                data_tag = $(element).attr('data-tag')
-                if data_tag?
-                    if tag_renderers.get(data_tag)?
-                        tag_renderers.get(data_tag) element, data
-                    else tag_renderers.get('div') element, data
-                else
-                    if not element.tagName?
-                        tag_renderers.get('div') element, data, contents
-                    else
-                        tag_name = element.tagName.lower()
-                        if tag_renderers.get(tag_name)?
-                            tag_renderers.get(tag_name) element, data
-                        else tag_renderers.get('div') element, data
-
-                if actions? and actions.add
-                    _libs.open {
-                        url: $(element).attr('data-source') + 'spec/'
-                        success: (data) ->
-                            add_element element, data 
-                    }
+            success: _.partial set_object, element, actions
         }
 
     tag_renderers = (singleton ->
@@ -792,6 +807,14 @@ validators = (spec={}, that={}) ->
                     /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$/
                 if not $.trim(object.value).match regex
                     return [__('The email you entered is incorrect')]
+                return null
+
+            url: (object, kwargs) ->
+                # Checks if the field contains a url addres
+                regex = kwargs.regex ? \
+                    /^[-a-zA-Z0-9@:%_\+.~#?&//=]{2,256}\.[a-z]{2,4}\b(\/[-a-zA-Z0-9@:%_\+.~#?&//=]*)?$/ 
+                if not $.trim(object.value).match regex
+                    return [__('The url you entered is incorrect')]
                 return null
 
             required: (object) ->
@@ -1107,7 +1130,7 @@ model = (spec={}, that={}) ->
 
                     callback ret, other_params
                 error: error_callback
-                palantir_timeout: 300
+                palantir_timeout: 60*10
             }
 
     that.more = (callback=( -> ), params=last_params) ->
@@ -1159,6 +1182,7 @@ model = (spec={}, that={}) ->
     that.new = (callback=( -> )) ->
         that.keys ->
             new_def = _helpers.deep_copy(data_def)
+            console.log new_def
             for key, value of new_def
                 new_def[key] = undefined
             ret = makeobj(new_def, true)
@@ -1170,6 +1194,7 @@ model = (spec={}, that={}) ->
     that.keys = (callback=( -> )) ->
         p.open {
             url: spec.url + 'spec/'
+            palantir_timeout: 3600*24
             success: (data) ->
                 data_def = normalize data.data
                 callback _.keys data.data
@@ -1267,6 +1292,7 @@ model = (spec={}, that={}) ->
                     type: req_type
                     success: (data) ->
                         for key, value of data.data
+                            console.log key, value
                             try
                                 ret[key] = value
                             catch e
@@ -1311,7 +1337,11 @@ model = (spec={}, that={}) ->
 
     validate_failed = (callback=( -> )) ->
         (data) ->
-            data = JSON.parse data.responseText
+            try
+                data = JSON.parse data.responseText
+            catch e 
+                if e instanceof SyntaxError then return callback data
+                else throw e
 
             # Validates the failed fields, if this is what the server
             # wants.
@@ -1341,6 +1371,7 @@ model = (spec={}, that={}) ->
             if value == 'int' or value == 'decimal'
                 data[key] = 'number'
 
+        data[spec.id] = 'string'
         return data
 
     spec = _.extend spec, {__inner: true}
@@ -1356,7 +1387,7 @@ palantir = (spec={}, that={}) ->
         spec = spec[0]
 
     # Magic generating the base url for the app
-    base_url = spec.base_url ? (location.href.match /^(http|https):\/\/[a-zA-Z0-9:]+\//)
+    base_url = spec.base_url ? (location.href.match /^(http|https):\/\/[a-zA-Z0-9\-\.:]+/)
     if Object.prototype.toString.call(base_url) == '[object Array]'
         if base_url.length == 0
             base_url = location.href
